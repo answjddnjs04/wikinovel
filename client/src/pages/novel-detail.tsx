@@ -7,7 +7,7 @@ import ContributorRanking from "@/components/ContributorRanking";
 import EpisodeList from "@/components/EpisodeList";
 import ProposalsList from "@/components/ProposalsList";
 import { useState } from "react";
-import { BookOpen, FileText, Settings, ArrowLeft, Crown, List } from "lucide-react";
+import { BookOpen, FileText, Settings, ArrowLeft, Crown, List, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
@@ -53,12 +53,15 @@ export default function NovelDetail() {
             </Button>
           </Link>
           
-          <Link href={`/novels/${novel.id}/proposals`}>
-            <Button variant="outline" className="text-slate-600 hover:text-slate-800" data-testid="button-proposals">
-              <List className="h-4 w-4 mr-2" />
-              제안 목록
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            className="text-slate-600 hover:text-slate-800" 
+            data-testid="button-proposals"
+            onClick={() => setActiveTab("proposals")}
+          >
+            <List className="h-4 w-4 mr-2" />
+            제안 목록
+          </Button>
         </div>
 
         {/* Novel Header */}
@@ -85,14 +88,14 @@ export default function NovelDetail() {
 
         {/* Main Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white rounded-lg shadow-sm border border-slate-200">
+          <TabsList className="grid w-full grid-cols-6 bg-white rounded-lg shadow-sm border border-slate-200">
             <TabsTrigger value="episodes" className="flex items-center space-x-2" data-testid="tab-episodes">
               <BookOpen className="h-4 w-4" />
               <span>읽기</span>
             </TabsTrigger>
-            <TabsTrigger value="proposals" className="flex items-center space-x-2" data-testid="tab-proposals">
+            <TabsTrigger value="episodes-list" className="flex items-center space-x-2" data-testid="tab-episodes-list">
               <List className="h-4 w-4" />
-              <span>목록</span>
+              <span>회차</span>
             </TabsTrigger>
             <TabsTrigger value="ranking" className="flex items-center space-x-2" data-testid="tab-ranking">
               <Crown className="h-4 w-4" />
@@ -105,6 +108,10 @@ export default function NovelDetail() {
             <TabsTrigger value="rules" className="flex items-center space-x-2" data-testid="tab-rules">
               <Settings className="h-4 w-4" />
               <span>규칙</span>
+            </TabsTrigger>
+            <TabsTrigger value="proposals" className="flex items-center space-x-2" data-testid="tab-proposals">
+              <MessageSquare className="h-4 w-4" />
+              <span>제안</span>
             </TabsTrigger>
           </TabsList>
 
@@ -122,8 +129,14 @@ export default function NovelDetail() {
             )}
           </TabsContent>
 
-          <TabsContent value="proposals" className="space-y-0">
-            <ProposalsList novelId={novel.id} />
+          <TabsContent value="episodes-list" className="space-y-0">
+            <EpisodeList 
+              novel={novel} 
+              onEpisodeSelect={(ep) => {
+                window.location.href = `/novels/${novel.id}?episode=${ep}`;
+              }}
+              selectedEpisode={selectedEpisode}
+            />
           </TabsContent>
 
 
@@ -150,6 +163,10 @@ export default function NovelDetail() {
               content={novel.rules}
               placeholder="이 소설에 참여할 때 지켜야 할 규칙을 작성해주세요. 예: 문체, 캐릭터 설정, 금기사항 등"
             />
+          </TabsContent>
+
+          <TabsContent value="proposals" className="space-y-0">
+            <ProposalsList novelId={novel.id} />
           </TabsContent>
         </Tabs>
       </div>
