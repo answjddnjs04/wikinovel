@@ -175,7 +175,20 @@ export default function ProposalDetail() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-slate-800">{proposal.title}</h1>
+            <div className="flex items-center space-x-3">
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                (proposal as any).proposalType === 'modification' ? 'bg-slate-100 text-slate-800' :
+                (proposal as any).proposalType === 'worldSetting' ? 'bg-blue-100 text-blue-800' :
+                (proposal as any).proposalType === 'rules' ? 'bg-purple-100 text-purple-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {(proposal as any).proposalType === 'modification' ? '소설' :
+                 (proposal as any).proposalType === 'worldSetting' ? '세계관' :
+                 (proposal as any).proposalType === 'rules' ? '규칙' :
+                 '제안'}
+              </span>
+              <h1 className="text-3xl font-bold text-slate-800">{proposal.title}</h1>
+            </div>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(proposal.status)}`}>
               {getStatusText(proposal.status)}
             </span>
@@ -208,7 +221,9 @@ export default function ProposalDetail() {
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
               <span className="w-3 h-3 bg-red-500 rounded-full mr-2"></span>
-              기존 내용
+              기존 {(proposal as any).proposalType === 'modification' ? '소설' :
+                     (proposal as any).proposalType === 'worldSetting' ? '세계관' :
+                     (proposal as any).proposalType === 'rules' ? '규칙' : '내용'}
             </h2>
             <div className="prose prose-slate max-w-none">
               <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
@@ -223,7 +238,9 @@ export default function ProposalDetail() {
           <Card className="p-6">
             <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
               <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-              제안 내용
+              제안 {(proposal as any).proposalType === 'modification' ? '소설' :
+                    (proposal as any).proposalType === 'worldSetting' ? '세계관' :
+                    (proposal as any).proposalType === 'rules' ? '규칙' : '내용'}
             </h2>
             <div className="prose prose-slate max-w-none">
               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">

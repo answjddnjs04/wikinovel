@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Edit3, Plus, Send, X, Eye, MessageSquare, Vote, BookOpen } from "lucide-react";
+import { Edit3, Plus, Send, X, Eye, MessageSquare, Vote, BookOpen, Globe } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
   const [proposalTitle, setProposalTitle] = useState("");
   const [proposalContent, setProposalContent] = useState("");
   const [proposalReason, setProposalReason] = useState("");
+  const [proposalType, setProposalType] = useState<"modification" | "worldSetting" | "rules">("modification");
   const [showEpisodeList, setShowEpisodeList] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -48,8 +49,10 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
       return await apiRequest("POST", `/api/proposals`, {
         novelId: novel.id,
         title: proposalTitle,
-        proposalType: "modification",
-        originalText: novel.content || "",
+        proposalType: proposalType,
+        originalText: proposalType === "modification" ? novel.content || "" : 
+                     proposalType === "worldSetting" ? novel.worldSetting || "" :
+                     novel.rules || "",
         proposedText: proposalContent,
         reason: proposalReason,
       });

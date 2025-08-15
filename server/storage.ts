@@ -328,13 +328,21 @@ export class DatabaseStorage implements IStorage {
       const approvalRate = approveWeight / totalWeight;
       
       if (approvalRate >= 0.5) {
-        // Apply the proposal
-        await this.updateNovelContent(proposal.novelId, proposal.proposedText);
+        // Apply the proposal based on type
+        if (proposal.proposalType === 'modification') {
+          await this.updateNovelContent(proposal.novelId, proposal.proposedText);
+        } else if (proposal.proposalType === 'worldSetting') {
+          await this.updateNovelWorldSetting(proposal.novelId, proposal.proposedText);
+        } else if (proposal.proposalType === 'rules') {
+          await this.updateNovelRules(proposal.novelId, proposal.proposedText);
+        }
+        
         await this.updateProposalStatus(proposal.id, 'approved');
         
         // Add contribution record for the proposer
         const charCount = proposal.proposedText.length;
-        await this.addNovelContribution(proposal.novelId, proposal.proposerId, charCount, 'story');
+        const contributionType = proposal.proposalType === 'modification' ? 'story' : proposal.proposalType;
+        await this.addNovelContribution(proposal.novelId, proposal.proposerId, charCount, contributionType);
         
         console.log(`Proposal ${proposalId} automatically approved with ${(approvalRate * 100).toFixed(1)}% approval rate`);
         return true;
@@ -438,13 +446,21 @@ export class DatabaseStorage implements IStorage {
         const approvalRate = approveWeight / totalWeight;
         
         if (approvalRate >= 0.5) {
-          // Apply the proposal
-          await this.updateNovelContent(proposal.novelId, proposal.proposedText);
+          // Apply the proposal based on type
+          if (proposal.proposalType === 'modification') {
+            await this.updateNovelContent(proposal.novelId, proposal.proposedText);
+          } else if (proposal.proposalType === 'worldSetting') {
+            await this.updateNovelWorldSetting(proposal.novelId, proposal.proposedText);
+          } else if (proposal.proposalType === 'rules') {
+            await this.updateNovelRules(proposal.novelId, proposal.proposedText);
+          }
+          
           await this.updateProposalStatus(proposal.id, 'approved');
           
           // Add contribution record for the proposer
           const charCount = proposal.proposedText.length;
-          await this.addNovelContribution(proposal.novelId, proposal.proposerId, charCount, 'story');
+          const contributionType = proposal.proposalType === 'modification' ? 'story' : proposal.proposalType;
+          await this.addNovelContribution(proposal.novelId, proposal.proposerId, charCount, contributionType);
         } else {
           await this.updateProposalStatus(proposal.id, 'rejected');
         }
