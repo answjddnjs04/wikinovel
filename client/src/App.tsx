@@ -9,6 +9,7 @@ import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import NovelDetail from "@/pages/novel-detail";
 import NovelProposals from "@/pages/novel-proposals";
+import WeeklyLeaderboardPage from "@/pages/weekly-leaderboard";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -20,6 +21,7 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
+          <Route path="/leaderboard" component={WeeklyLeaderboardPage} />
           <Route path="/novels/:id" component={NovelDetail} />
           <Route path="/novels/:id/proposals" component={NovelProposals} />
         </>

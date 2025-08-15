@@ -5,7 +5,8 @@ import Sidebar from "@/components/Sidebar";
 import NovelCard from "@/components/NovelCard";
 import CreateNovelModal from "@/components/CreateNovelModal";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Trophy } from "lucide-react";
+import { Link } from "wouter";
 import type { Novel } from "@shared/schema";
 
 export default function Home() {
@@ -49,13 +50,21 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-slate-800" data-testid="text-genre-title">
                 {selectedGenre} 소설
               </h2>
-              <Button 
-                onClick={() => setIsCreateModalOpen(true)}
-                data-testid="button-create-novel"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                새 소설 시작
-              </Button>
+              <div className="flex space-x-3">
+                <Link href="/leaderboard">
+                  <Button variant="outline" data-testid="button-leaderboard">
+                    <Trophy className="mr-2 h-4 w-4" />
+                    주간 리더보드
+                  </Button>
+                </Link>
+                <Button 
+                  onClick={() => setIsCreateModalOpen(true)}
+                  data-testid="button-create-novel"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  새 소설 시작
+                </Button>
+              </div>
             </div>
 
             {isLoading ? (

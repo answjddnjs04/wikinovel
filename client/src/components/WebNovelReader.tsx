@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { Novel } from "@shared/schema";
+import CommentTextRenderer from "./CommentTextRenderer";
 
 interface WebNovelReaderProps {
   novel: Novel;
@@ -19,6 +20,18 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
   const [proposalReason, setProposalReason] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Track novel view on component mount
+  const trackViewMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/novels/${novel.id}/view`, {});
+    },
+  });
+
+  // Track view when component mounts
+  useEffect(() => {
+    trackViewMutation.mutate();
+  }, [novel.id]);
 
   const createProposalMutation = useMutation({
     mutationFn: async () => {
@@ -132,7 +145,11 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsProposing(true)}
+                onClick={() => {
+                  setIsProposing(true);
+                  setProposalContent(novel.content || "");
+                  setProposalReason("");
+                }}
                 data-testid="button-propose-edit"
               >
                 <Edit3 className="h-4 w-4 mr-2" />
@@ -157,7 +174,10 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
                     className="prose prose-slate max-w-none text-slate-800 leading-relaxed text-lg whitespace-pre-wrap"
                     data-testid={`episode-content-${episode.number}`}
                   >
-                    {episode.content}
+                    <CommentTextRenderer 
+                      text={episode.content}
+                      className=""
+                    />
                   </div>
                 </div>
               ))}
@@ -196,7 +216,10 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-2 text-slate-600">
               <Edit3 className="h-4 w-4" />
-              <span className="text-sm">수정 제안 모드 - 좌측: 기존 내용, 우측: 제안 내용</span>
+              <div>
+                <span className="text-sm font-medium">수정 제안 모드 - 좌측: 기존 내용, 우측: 제안 내용</span>
+                <p className="text-xs text-slate-500 mt-1">%% 주석을 사용하면 글이 흐려집니다. 예: %%이것은 주석입니다%% 수정된 내용은 자동으로 강조됩니다.</p>
+              </div>
             </div>
             <div className="flex space-x-2">
               <Button
@@ -227,9 +250,10 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
             <div className="border border-slate-300 rounded-lg p-4 bg-slate-50">
               <h4 className="font-semibold text-slate-700 mb-3">기존 내용</h4>
               <div className="prose prose-slate max-w-none">
-                <div className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap max-h-[500px] overflow-y-auto">
-                  {novel.content || "아직 작성된 내용이 없습니다."}
-                </div>
+                <CommentTextRenderer 
+                  text={novel.content || "아직 작성된 내용이 없습니다."}
+                  className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap max-h-[500px] overflow-y-auto"
+                />
               </div>
             </div>
 

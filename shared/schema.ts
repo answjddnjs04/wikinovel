@@ -240,6 +240,33 @@ export const insertProposalCommentSchema = createInsertSchema(proposalComments).
   createdAt: true,
 });
 
+// View tracking tables
+export const novelViews = pgTable("novel_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  novelId: varchar("novel_id").notNull().references(() => novels.id),
+  userId: varchar("user_id").references(() => users.id),
+  viewedAt: timestamp("viewed_at").defaultNow(),
+  ipAddress: varchar("ip_address"),
+});
+
+export const proposalViews = pgTable("proposal_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  proposalId: varchar("proposal_id").notNull().references(() => editProposals.id),
+  userId: varchar("user_id").references(() => users.id),
+  viewedAt: timestamp("viewed_at").defaultNow(),
+  ipAddress: varchar("ip_address"),
+});
+
+export const insertNovelViewSchema = createInsertSchema(novelViews).omit({
+  id: true,
+  viewedAt: true,
+});
+
+export const insertProposalViewSchema = createInsertSchema(proposalViews).omit({
+  id: true,
+  viewedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;

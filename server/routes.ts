@@ -238,6 +238,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Weekly leaderboard endpoint
+  app.get('/api/leaderboard/weekly', async (req, res) => {
+    try {
+      const leaderboard = await storage.getWeeklyLeaderboard();
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching weekly leaderboard:", error);
+      res.status(500).json({ message: "Failed to fetch weekly leaderboard" });
+    }
+  });
+
+  // Track novel view
+  app.post('/api/novels/:id/view', async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.claims?.sub;
+      const ipAddress = req.ip;
+      
+      await storage.trackNovelView(id, userId, ipAddress);
+      res.json({ message: "View tracked successfully" });
+    } catch (error) {
+      console.error("Error tracking novel view:", error);
+      res.status(500).json({ message: "Failed to track view" });
+    }
+  });
+
+  // Track proposal view
+  app.post('/api/proposals/:id/view', async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.claims?.sub;
+      const ipAddress = req.ip;
+      
+      await storage.trackProposalView(id, userId, ipAddress);
+      res.json({ message: "View tracked successfully" });
+    } catch (error) {
+      console.error("Error tracking proposal view:", error);
+      res.status(500).json({ message: "Failed to track view" });
+    }
+  });
+
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;

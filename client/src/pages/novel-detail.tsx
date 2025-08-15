@@ -5,7 +5,7 @@ import WebNovelReader from "@/components/WebNovelReader";
 import ReferencePanel from "@/components/ReferencePanel";
 import ContributorRanking from "@/components/ContributorRanking";
 import { useState } from "react";
-import { BookOpen, FileText, Settings, ArrowLeft } from "lucide-react";
+import { BookOpen, FileText, Settings, ArrowLeft, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
@@ -71,10 +71,14 @@ export default function NovelDetail() {
 
         {/* Main Content */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 bg-white rounded-lg shadow-sm border border-slate-200">
+          <TabsList className="grid w-full grid-cols-4 bg-white rounded-lg shadow-sm border border-slate-200">
             <TabsTrigger value="story" className="flex items-center space-x-2" data-testid="tab-story">
               <BookOpen className="h-4 w-4" />
               <span>소설</span>
+            </TabsTrigger>
+            <TabsTrigger value="ranking" className="flex items-center space-x-2" data-testid="tab-ranking">
+              <Crown className="h-4 w-4" />
+              <span>순위</span>
             </TabsTrigger>
             <TabsTrigger value="worldSetting" className="flex items-center space-x-2" data-testid="tab-world">
               <FileText className="h-4 w-4" />
@@ -87,14 +91,11 @@ export default function NovelDetail() {
           </TabsList>
 
           <TabsContent value="story" className="space-y-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2">
-                <WebNovelReader novel={novel} />
-              </div>
-              <div className="space-y-6">
-                <ContributorRanking novelId={novel.id} />
-              </div>
-            </div>
+            <WebNovelReader novel={novel} />
+          </TabsContent>
+
+          <TabsContent value="ranking" className="space-y-0">
+            <ContributorRanking novelId={novel.id} />
           </TabsContent>
 
           <TabsContent value="worldSetting" className="space-y-0">

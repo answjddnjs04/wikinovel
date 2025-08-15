@@ -6,6 +6,8 @@ import {
   proposalVotes,
   proposalComments,
   novelUserTitles,
+  novelViews,
+  proposalViews,
   type User,
   type UpsertUser,
   type Novel,
@@ -22,7 +24,7 @@ import {
   type InsertNovelUserTitle,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sum, count, sql } from "drizzle-orm";
+import { eq, desc, and, sum, count, sql, gte } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -345,6 +347,115 @@ export class DatabaseStorage implements IStorage {
         await this.updateProposalStatus(proposal.id, 'expired');
       }
     }
+  }
+
+  // Weekly leaderboard operations
+  async getWeeklyLeaderboard(): Promise<any> {
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // This week's Monday
+    weekStart.setHours(0, 0, 0, 0);
+
+    // 1. 가장 많이 반영된 소설 랭킹
+    const approvedSuggestions = await db
+      .select({
+        id: novels.id,
+        title: novels.title,
+        value: count(editProposals.id).as('approved_count')
+      })
+      .from(novels)
+      .leftJoin(editProposals, and(
+        eq(editProposals.novelId, novels.id),
+        eq(editProposals.status, 'approved'),
+        gte(editProposals.createdAt, weekStart)
+      ))
+      .groupBy(novels.id, novels.title)
+      .orderBy(desc(count(editProposals.id)))
+      .limit(10);
+
+    // 2. 소설 조회수 랭킹
+    const novelViewsRanking = await db
+      .select({
+        id: novels.id,
+        title: novels.title,
+        value: count(novelViews.id).as('view_count')
+      })
+      .from(novels)
+      .leftJoin(novelViews, and(
+        eq(novelViews.novelId, novels.id),
+        gte(novelViews.viewedAt, weekStart)
+      ))
+      .groupBy(novels.id, novels.title)
+      .orderBy(desc(count(novelViews.id)))
+      .limit(10);
+
+    // 3. 제안 조회수 랭킹
+    const suggestionViewsRanking = await db
+      .select({
+        id: editProposals.id,
+        title: sql`concat(${novels.title}, ' - 제안')`.as('proposal_title'),
+        value: count(proposalViews.id).as('view_count')
+      })
+      .from(editProposals)
+      .leftJoin(novels, eq(editProposals.novelId, novels.id))
+      .leftJoin(proposalViews, and(
+        eq(proposalViews.proposalId, editProposals.id),
+        gte(proposalViews.viewedAt, weekStart)
+      ))
+      .where(gte(editProposals.createdAt, weekStart))
+      .groupBy(editProposals.id, novels.title)
+      .orderBy(desc(count(proposalViews.id)))
+      .limit(10);
+
+    // 4. 승인률 랭킹 (최소 3개 제안)
+    const approvalRatesRanking = await db
+      .select({
+        id: users.id,
+        title: sql`coalesce(${users.firstName}, ${users.email}, '익명')`.as('user_name'),
+        value: sql`round((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100), 1)`.as('approval_rate'),
+        percentage: sql`round((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100), 1)`.as('approval_percentage')
+      })
+      .from(users)
+      .leftJoin(editProposals, and(
+        eq(editProposals.proposerId, users.id),
+        gte(editProposals.createdAt, weekStart)
+      ))
+      .groupBy(users.id, users.firstName, users.email)
+      .having(sql`count(${editProposals.id}) >= 3`)
+      .orderBy(desc(sql`round((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100), 1)`))
+      .limit(10);
+
+    // Format results with rank
+    const formatWithRank = (data: any[]) => 
+      data.map((item, index) => ({
+        ...item,
+        rank: index + 1,
+        value: Number(item.value || 0)
+      }));
+
+    return {
+      approvedSuggestions: formatWithRank(approvedSuggestions),
+      novelViews: formatWithRank(novelViewsRanking),
+      suggestionViews: formatWithRank(suggestionViewsRanking),
+      approvalRates: formatWithRank(approvalRatesRanking)
+    };
+  }
+
+  // Track novel views
+  async trackNovelView(novelId: string, userId?: string, ipAddress?: string): Promise<void> {
+    await db.insert(novelViews).values({
+      novelId,
+      userId,
+      ipAddress
+    });
+  }
+
+  // Track proposal views
+  async trackProposalView(proposalId: string, userId?: string, ipAddress?: string): Promise<void> {
+    await db.insert(proposalViews).values({
+      proposalId,
+      userId,
+      ipAddress
+    });
   }
 }
 
