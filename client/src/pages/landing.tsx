@@ -195,7 +195,7 @@ export default function Landing() {
           <h2 className="text-3xl font-bold text-center text-slate-800 mb-12">
             플랫폼 현황
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 gap-6 max-w-lg mx-auto">
             <Card className="text-center">
               <CardContent className="pt-6">
                 <FileText className="h-8 w-8 text-primary mx-auto mb-3" />
@@ -213,26 +213,6 @@ export default function Landing() {
                   {statsLoading ? '...' : currentStats.totalCharacters.toLocaleString()}
                 </div>
                 <p className="text-sm text-slate-600">총 작성 글자 수</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <PenTool className="h-8 w-8 text-primary mx-auto mb-3" />
-                <div className="text-2xl font-bold text-slate-800" data-testid="text-active-writers">
-                  {statsLoading ? '...' : currentStats.activeWriters.toLocaleString()}
-                </div>
-                <p className="text-sm text-slate-600">활성 작가 수</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center">
-              <CardContent className="pt-6">
-                <TrendingUp className="h-8 w-8 text-primary mx-auto mb-3" />
-                <div className="text-2xl font-bold text-slate-800" data-testid="text-weekly-contributions">
-                  {statsLoading ? '...' : currentStats.weeklyContributions.toLocaleString()}
-                </div>
-                <p className="text-sm text-slate-600">주간 기여 횟수</p>
               </CardContent>
             </Card>
           </div>

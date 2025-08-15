@@ -7,7 +7,7 @@ import ReferencePanel from "@/components/ReferencePanel";
 import ContributorRanking from "@/components/ContributorRanking";
 import EpisodeList from "@/components/EpisodeList";
 import { useState } from "react";
-import { BookOpen, FileText, Settings, ArrowLeft, List, Crown, Globe } from "lucide-react";
+import { BookOpen, FileText, Settings, ArrowLeft, List, Crown, Globe, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
@@ -79,6 +79,10 @@ export default function NovelDetail() {
               </span>
               <span data-testid="text-total-chars">
                 {novel.content?.length || 0}자
+              </span>
+              <span className="flex items-center space-x-1" data-testid="text-view-count">
+                <Eye className="h-4 w-4" />
+                <span>조회수 {(novel as any).viewCount || 0}</span>
               </span>
             </div>
             {novel.description && (

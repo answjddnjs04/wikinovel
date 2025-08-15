@@ -700,25 +700,9 @@ export class DatabaseStorage implements IStorage {
     }).from(novels);
     const totalCharacters = totalCharactersResult.total || 0;
 
-    const [activeWritersResult] = await db.select({ 
-      count: sql<number>`count(distinct ${editProposals.proposerId})` 
-    })
-    .from(editProposals)
-    .where(sql`${editProposals.createdAt} > now() - interval '30 days'`);
-    const activeWriters = activeWritersResult.count || 0;
-
-    const [weeklyContributionsResult] = await db.select({ 
-      count: sql<number>`count(*)` 
-    })
-    .from(editProposals)
-    .where(sql`${editProposals.createdAt} > now() - interval '7 days'`);
-    const weeklyContributions = weeklyContributionsResult.count || 0;
-
     return {
       totalNovels,
       totalCharacters,
-      activeWriters,
-      weeklyContributions,
     };
   }
 }
