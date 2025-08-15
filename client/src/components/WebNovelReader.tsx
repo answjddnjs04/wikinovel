@@ -20,6 +20,7 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
   const [proposalTitle, setProposalTitle] = useState("");
   const [proposalContent, setProposalContent] = useState("");
   const [proposalReason, setProposalReason] = useState("");
+  const [showEpisodeList, setShowEpisodeList] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -37,6 +38,13 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
 
   const createProposalMutation = useMutation({
     mutationFn: async () => {
+      // 첫 내용 작성인 경우 바로 반영
+      if (!novel.content && proposalReason === "첫 내용 작성") {
+        return await apiRequest("PATCH", `/api/novels/${novel.id}`, {
+          content: proposalContent,
+        });
+      }
+      
       return await apiRequest("POST", `/api/proposals`, {
         novelId: novel.id,
         title: proposalTitle,
@@ -47,20 +55,28 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/novels", novel.id, "proposals"] });
+      if (!novel.content && proposalReason === "첫 내용 작성") {
+        queryClient.invalidateQueries({ queryKey: ["/api/novels", novel.id] });
+        toast({
+          title: "첫 내용 작성 완료",
+          description: "소설의 첫 내용이 성공적으로 작성되었습니다.",
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/novels", novel.id, "proposals"] });
+        toast({
+          title: "제안 완료",
+          description: "수정 제안이 성공적으로 등록되었습니다.",
+        });
+      }
       setIsProposing(false);
       setProposalTitle("");
       setProposalContent("");
       setProposalReason("");
-      toast({
-        title: "제안 완료",
-        description: "수정 제안이 성공적으로 등록되었습니다.",
-      });
     },
     onError: () => {
       toast({
-        title: "제안 실패",
-        description: "수정 제안 등록 중 오류가 발생했습니다.",
+        title: "작성 실패",
+        description: "작성 중 오류가 발생했습니다.",
         variant: "destructive",
       });
     },
@@ -158,17 +174,73 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
               </span>
             </div>
             <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleStartProposal}
-                data-testid="button-propose-edit"
-              >
-                <Edit3 className="h-4 w-4 mr-2" />
-                수정 제안
-              </Button>
+              {!novel.content ? (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => {
+                    setIsProposing(true);
+                    setProposalContent("");
+                    setProposalReason("첫 내용 작성");
+                    setProposalTitle("첫 내용 작성");
+                  }}
+                  data-testid="button-write-first"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  첫 내용 작성
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowEpisodeList(!showEpisodeList)}
+                    data-testid="button-episode-list"
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    회차 목록
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleStartProposal}
+                    data-testid="button-propose-edit"
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    수정 제안
+                  </Button>
+                </>
+              )}
             </div>
           </div>
+
+          {/* Episode List Modal */}
+          {showEpisodeList && novel.content && (
+            <div className="mb-6 p-4 bg-slate-50 rounded-lg border">
+              <h4 className="font-semibold mb-3">회차 목록</h4>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                {episodes.map((episode) => (
+                  <Button
+                    key={episode.number}
+                    variant={selectedEpisode === episode.number ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      if (selectedEpisode === episode.number) {
+                        // 현재 선택된 화를 다시 클릭하면 전체 보기
+                        window.location.href = `/novels/${novel.id}`;
+                      } else {
+                        window.location.href = `/novels/${novel.id}?episode=${episode.number}`;
+                      }
+                    }}
+                    className="justify-center"
+                    data-testid={`button-episode-${episode.number}`}
+                  >
+                    {episode.number}화
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {novel.content ? (
             <div className="space-y-8">

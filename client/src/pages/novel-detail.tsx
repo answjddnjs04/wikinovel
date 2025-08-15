@@ -16,7 +16,11 @@ import type { Novel } from "@shared/schema";
 export default function NovelDetail() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("episodes");
-  const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
+  
+  // URL에서 episode 파라미터 읽기
+  const urlParams = new URLSearchParams(window.location.search);
+  const episodeParam = urlParams.get('episode');
+  const selectedEpisode = episodeParam ? parseInt(episodeParam) : null;
 
   const { data: novel } = useQuery<Novel>({
     queryKey: ["/api/novels", id],
@@ -41,11 +45,18 @@ export default function NovelDetail() {
       
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Back Button */}
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <Link href="/">
             <Button variant="ghost" className="text-slate-600 hover:text-slate-800" data-testid="button-back">
               <ArrowLeft className="h-4 w-4 mr-2" />
               소설 목록으로
+            </Button>
+          </Link>
+          
+          <Link href={`/novels/${novel.id}/proposals`}>
+            <Button variant="outline" className="text-slate-600 hover:text-slate-800" data-testid="button-proposals">
+              <List className="h-4 w-4 mr-2" />
+              제안 목록
             </Button>
           </Link>
         </div>
@@ -103,7 +114,9 @@ export default function NovelDetail() {
             ) : (
               <EpisodeList 
                 novel={novel} 
-                onEpisodeSelect={setSelectedEpisode}
+                onEpisodeSelect={(ep) => {
+                  window.location.href = `/novels/${novel.id}?episode=${ep}`;
+                }}
                 selectedEpisode={selectedEpisode}
               />
             )}
