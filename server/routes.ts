@@ -104,42 +104,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = req.user.claims.sub;
       }
 
-      const novel = await storage.updateNovelContent(id, content);
+      const novel = await storage.updateNovelContent(id, content, userId);
       
-      // Add contribution record
+      // Calculate character count for contribution tracking
       const charCount = content.length;
-      await storage.addNovelContribution(id, userId, charCount, 'story');
+      await storage.addNovelContribution(id, userId, charCount, 'content');
 
       res.json(novel);
     } catch (error) {
-      console.error("Error updating novel content:", error);
-      res.status(500).json({ message: "Failed to update novel content" });
-    }
-  });
-
-  app.put('/api/novels/:id/world-setting', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const { worldSetting } = req.body;
-      // Handle different authentication providers (same as /api/auth/user)
-      let userId: string;
-      
-      if (req.user.provider === 'kakao') {
-        userId = req.user.id;
-      } else {
-        userId = req.user.claims.sub;
-      }
-
-      const novel = await storage.updateNovelWorldSetting(id, worldSetting);
-      
-      // Add contribution record
-      const charCount = worldSetting.length;
-      await storage.addNovelContribution(id, userId, charCount, 'worldSetting');
-
-      res.json(novel);
-    } catch (error) {
-      console.error("Error updating world setting:", error);
-      res.status(500).json({ message: "Failed to update world setting" });
+      console.error("Error updating content:", error);
+      res.status(500).json({ message: "Failed to update content" });
     }
   });
 
@@ -156,9 +130,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = req.user.claims.sub;
       }
 
-      const novel = await storage.updateNovelRules(id, rules);
+      const novel = await storage.updateNovelRules(id, rules, userId);
       
-      // Add contribution record
+      // Calculate character count for contribution tracking
       const charCount = rules.length;
       await storage.addNovelContribution(id, userId, charCount, 'rules');
 
@@ -220,28 +194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ message: "Proposal deleted successfully" });
     } catch (error) {
-      console.error("Error deleting proposal:", error);
-      res.status(500).json({ message: "Failed to delete proposal" });
-    }
-  });
-
-  // Get single proposal by ID
-  app.get('/api/proposals/:proposalId', async (req, res) => {
-    try {
-      const { proposalId } = req.params;
-      console.log('Fetching proposal with ID:', proposalId);
-      
-      const proposal = await storage.getProposalById(proposalId);
-      if (!proposal) {
-        console.log('Proposal not found:', proposalId);
-        return res.status(404).json({ message: "Proposal not found" });
-      }
-      
-      console.log('Found proposal:', proposal);
-      res.json(proposal);
-    } catch (error) {
-      console.error("Error fetching proposal:", error);
-      res.status(500).json({ message: "Failed to fetch proposal" });
+      console.error('Error deleting proposal:', error);
+      res.status(500).json({ message: 'Failed to delete proposal' });
     }
   });
 
@@ -255,64 +209,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         userId = req.user.claims.sub;
       }
-      
-      const { novelId, proposalType, originalText, proposedText, reason, title, episodeNumber } = req.body;
-      
-      console.log('Received proposal data:', { novelId, proposalType, originalText, proposedText, reason, title, userId });
-      
-      // Set expiration to 24 hours from now
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 24);
-
-      const proposal = await storage.createEditProposal({
-        novelId,
-        proposerId: userId,
-        proposalType,
-        originalText,
-        proposedText,
-        reason,
-        title: title || proposedText.substring(0, 50) + (proposedText.length > 50 ? '...' : ''),
-        episodeNumber: episodeNumber || null,
-        views: 0,
-        expiresAt
-      });
-
+      const proposalData = insertEditProposalSchema.parse({ ...req.body, proposerId: userId });
+      const proposal = await storage.createEditProposal(proposalData);
       res.status(201).json(proposal);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid proposal data", errors: error.errors });
+      }
       console.error("Error creating proposal:", error);
       res.status(500).json({ message: "Failed to create proposal" });
     }
   });
 
-  // Track proposal view
-  app.post('/api/proposals/:id/view', async (req: any, res) => {
+  app.get('/api/proposals/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      const ipAddress = req.ip;
+      const proposal = await storage.getProposal(id);
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      res.json(proposal);
+    } catch (error) {
+      console.error("Error fetching proposal:", error);
+      res.status(500).json({ message: "Failed to fetch proposal" });
+    }
+  });
+
+  // Voting routes
+  app.post('/api/proposals/:id/votes', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id: proposalId } = req.params;
+      const { voteType } = req.body;
       
-      await storage.trackProposalView(id, userId, ipAddress);
-      res.json({ message: "View tracked successfully" });
-    } catch (error) {
-      console.error("Error tracking proposal view:", error);
-      res.status(500).json({ message: "Failed to track view" });
-    }
-  });
-
-  // Proposal vote routes
-  app.get('/api/proposals/:id/votes', async (req, res) => {
-    try {
-      const { id } = req.params;
-      const votes = await storage.getVotesByProposal(id);
-      res.json(votes);
-    } catch (error) {
-      console.error("Error fetching votes:", error);
-      res.status(500).json({ message: "Failed to fetch votes" });
-    }
-  });
-
-  app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
-    try {
       // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
@@ -321,20 +249,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         userId = req.user.claims.sub;
       }
-      const { proposalId, voteType } = req.body;
 
-      // Check if user already voted
-      const existingVote = await storage.getUserVote(proposalId, userId);
-      if (existingVote) {
-        return res.status(400).json({ message: "User has already voted on this proposal" });
-      }
-
-      // Get the proposal to find the novel
+      // Get the proposal to determine which novel we're voting on
       const proposal = await storage.getProposal(proposalId);
       if (!proposal) {
         return res.status(404).json({ message: "Proposal not found" });
       }
-      
+
       // Calculate vote weight based on user contributions to the novel
       const userContributions = await storage.getUserContributionsByNovel(userId, proposal.novelId);
       const weight = Math.max(1, Math.floor(userContributions / 100)); // 100글자당 1가중치, 최소 1
@@ -439,7 +360,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/novels/:id/view', async (req: any, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.claims?.sub || req.user?.id;
       const ipAddress = req.ip;
       
       await storage.trackNovelView(id, userId, ipAddress);
@@ -456,48 +377,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id, episodeNumber } = req.params;
       const episodeNum = parseInt(episodeNumber);
       
-      const result = await storage.incrementEpisodeViews(id, episodeNum);
-      res.json({ message: "Episode view tracked successfully", episodeViews: result });
+      const result = await storage.incrementEpisodeView(id, episodeNum);
+      res.json(result);
     } catch (error) {
       console.error("Error tracking episode view:", error);
       res.status(500).json({ message: "Failed to track episode view" });
     }
   });
 
-  // Update user profile
-  app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+  // User profile update route
+  app.put('/api/auth/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const user = req.user as any;
-      const userId = user.sub || user.id;
-      const { firstName } = req.body;
-      
-      console.log('Profile update - User object:', user);
-      console.log('Profile update - UserId:', userId);
-      console.log('Profile update - Request body:', req.body);
-      
-      if (!firstName || firstName.trim().length === 0) {
-        return res.status(400).json({ message: "닉네임은 필수입니다" });
-      }
-      
-      if (firstName.length > 50) {
-        return res.status(400).json({ message: "닉네임은 50자 이내로 입력해주세요" });
-      }
-
-      const updatedUser = await storage.updateUser(userId, {
-        firstName: firstName.trim()
-      });
-
-      res.json(updatedUser);
-    } catch (error) {
-      console.error("Error updating profile:", error);
-      res.status(500).json({ message: "프로필 업데이트에 실패했습니다" });
-    }
-  });
-
-  // User stats route
-  app.get('/api/user/stats', isAuthenticated, async (req: any, res) => {
-    try {
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -506,19 +396,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = req.user.claims.sub;
       }
       
-      // TODO: Calculate comprehensive user statistics
-      const stats = {
-        totalContribution: 0,
-        approvalRate: 0,
-        participatedNovels: 0,
-      };
-      res.json(stats);
+      const { username, bio } = req.body;
+      
+      if (!username || username.trim().length === 0) {
+        return res.status(400).json({ message: "Username is required" });
+      }
+      
+      const updatedUser = await storage.updateUserProfile(userId, { username: username.trim(), bio: bio?.trim() });
+      res.json(updatedUser);
     } catch (error) {
-      console.error("Error fetching user stats:", error);
-      res.status(500).json({ message: "Failed to fetch user stats" });
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "Failed to update profile" });
     }
   });
 
+  // Health check endpoint
+  app.get('/api/health', async (req, res) => {
+    try {
+      // Simple database connectivity check
+      await storage.getAllNovels();
+      res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(500).json({ status: 'unhealthy', error: 'Database connection failed' });
+    }
+  });
+
+  // Create HTTP server and return it
   const httpServer = createServer(app);
   return httpServer;
 }
