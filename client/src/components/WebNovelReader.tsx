@@ -20,7 +20,7 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
   const [proposalTitle, setProposalTitle] = useState("");
   const [proposalContent, setProposalContent] = useState("");
   const [proposalReason, setProposalReason] = useState("");
-  const [proposalType, setProposalType] = useState<"modification" | "worldSetting" | "rules">("modification");
+  const [proposalType, setProposalType] = useState<"modification" | "worldSetting" | "rules" | "episodeTitle">("modification");
   const [showEpisodeList, setShowEpisodeList] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -32,10 +32,20 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
     },
   });
 
-  // Track view when component mounts
+  // Track episode view
+  const trackEpisodeViewMutation = useMutation({
+    mutationFn: async (episodeNumber: number) => {
+      return await apiRequest("POST", `/api/novels/${novel.id}/episodes/${episodeNumber}/view`, {});
+    },
+  });
+
+  // Track view when component mounts or episode changes
   useEffect(() => {
     trackViewMutation.mutate();
-  }, [novel.id]);
+    if (selectedEpisode) {
+      trackEpisodeViewMutation.mutate(selectedEpisode);
+    }
+  }, [novel.id, selectedEpisode]);
 
   const createProposalMutation = useMutation({
     mutationFn: async () => {
@@ -320,7 +330,6 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
               <Edit3 className="h-4 w-4" />
               <div>
                 <span className="text-sm font-medium">수정 제안 모드 - 좌측: 기존 내용, 우측: 제안 내용</span>
-                <p className="text-xs text-slate-500 mt-1">%% 주석을 사용하면 글이 흐려집니다. 예: %%이것은 주석입니다%% 수정된 내용은 자동으로 강조됩니다.</p>
               </div>
             </div>
             <div className="flex space-x-2">

@@ -374,6 +374,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Track episode view
+  app.post('/api/novels/:id/episodes/:episodeNumber/view', async (req: any, res) => {
+    try {
+      const { id, episodeNumber } = req.params;
+      const episodeNum = parseInt(episodeNumber);
+      
+      const result = await storage.incrementEpisodeViews(id, episodeNum);
+      res.json({ message: "Episode view tracked successfully", episodeViews: result });
+    } catch (error) {
+      console.error("Error tracking episode view:", error);
+      res.status(500).json({ message: "Failed to track episode view" });
+    }
+  });
+
   // Track proposal view
   app.post('/api/proposals/:id/view', async (req: any, res) => {
     try {

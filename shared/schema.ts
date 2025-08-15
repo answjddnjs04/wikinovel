@@ -61,6 +61,7 @@ export const episodes = pgTable("episodes", {
   title: varchar("title"), // 화 제목 (선택사항)
   content: text("content").notNull(),
   charCount: integer("char_count").notNull(),
+  viewCount: integer("view_count").default(0), // 회차별 조회수
   createdAt: timestamp("created_at").defaultNow(),
 });
 

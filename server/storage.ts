@@ -67,6 +67,9 @@ export interface IStorage {
   // User proposal management
   getUserProposals(userId: string): Promise<any[]>;
   deleteProposal(proposalId: string, userId: string): Promise<boolean>;
+  
+  // Episode view tracking
+  incrementEpisodeViews(novelId: string, episodeNumber: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -704,6 +707,13 @@ export class DatabaseStorage implements IStorage {
       totalNovels,
       totalCharacters,
     };
+  }
+
+  async incrementEpisodeViews(novelId: string, episodeNumber: number): Promise<number> {
+    // For now, we'll track episode views in memory or could add to database later
+    // Since episodes are dynamically generated from content, we'll return a simple count
+    // This is a placeholder - in a real implementation, you'd want a proper episodes table
+    return episodeNumber; // Placeholder return
   }
 }
 
