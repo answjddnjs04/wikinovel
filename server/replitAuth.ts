@@ -249,6 +249,47 @@ export async function setupAuth(app: Express) {
     });
   });
 
+  // Direct test endpoint for Kakao
+  app.get("/api/auth/kakao/test", (req, res) => {
+    console.log('=== KAKAO TEST ENDPOINT ===');
+    res.json({
+      message: '테스트 콜백 성공',
+      query: req.query,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Direct Kakao callback for testing (without Passport)
+  app.get("/api/kakao-direct", (req, res) => {
+    console.log('=== DIRECT KAKAO CALLBACK ===');
+    console.log('Query parameters:', req.query);
+    
+    if (req.query.error) {
+      console.error('Kakao OAuth error:', req.query.error);
+      return res.json({
+        error: 'Kakao OAuth error',
+        details: req.query,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    if (req.query.code) {
+      console.log('Authorization code received:', req.query.code);
+      return res.json({
+        success: true,
+        message: 'Kakao 인증 코드 수신 성공!',
+        code: req.query.code,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    res.json({
+      message: 'Direct Kakao callback reached',
+      query: req.query,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
       res.redirect(
