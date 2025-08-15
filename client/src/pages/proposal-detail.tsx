@@ -257,10 +257,10 @@ export default function ProposalDetail() {
                  (proposal as any).proposalType === 'rules' ? '규칙' :
                  '제안'}
               </span>
-              <h1 className="text-3xl font-bold text-slate-800">{proposal.title}</h1>
+              <h1 className="text-3xl font-bold text-slate-800">{proposal.title || '제목 없음'}</h1>
             </div>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(proposal.status)}`}>
-              {getStatusText(proposal.status)}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(proposal.status || 'pending')}`}>
+              {getStatusText(proposal.status || 'pending')}
             </span>
           </div>
           
