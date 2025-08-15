@@ -221,7 +221,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         weight
       });
 
-      res.status(201).json(vote);
+      // Check if proposal should be automatically applied after this vote
+      const wasApplied = await storage.checkAndApplyProposal(proposalId);
+      
+      res.status(201).json({ 
+        ...vote, 
+        proposalApplied: wasApplied 
+      });
     } catch (error) {
       console.error("Error creating vote:", error);
       res.status(500).json({ message: "Failed to create vote" });

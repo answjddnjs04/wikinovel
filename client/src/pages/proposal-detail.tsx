@@ -27,12 +27,21 @@ export default function ProposalDetail() {
         voteType 
       });
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/proposals', proposalId] });
-      toast({
-        title: "투표 완료",
-        description: "투표가 성공적으로 등록되었습니다.",
-      });
+      queryClient.invalidateQueries({ queryKey: ['/api/novels', actualNovelId] });
+      
+      if (data.proposalApplied) {
+        toast({
+          title: "제안 자동 승인됨! 🎉",
+          description: "투표율 50%를 달성하여 제안이 소설에 반영되었습니다.",
+        });
+      } else {
+        toast({
+          title: "투표 완료",
+          description: "투표가 성공적으로 등록되었습니다.",
+        });
+      }
     },
     onError: () => {
       toast({
@@ -296,7 +305,7 @@ export default function ProposalDetail() {
                 disabled={voteMutation.isPending}
               >
                 <ThumbsUp className="h-4 w-4 mr-2" />
-                찬성
+                {voteMutation.isPending ? "투표 중..." : "찬성"}
               </Button>
               <Button 
                 variant="destructive" 
@@ -306,14 +315,29 @@ export default function ProposalDetail() {
                 disabled={voteMutation.isPending}
               >
                 <ThumbsDown className="h-4 w-4 mr-2" />
-                반대
+                {voteMutation.isPending ? "투표 중..." : "반대"}
               </Button>
             </div>
           )}
 
-          {(proposal as any).status !== 'pending' && (
-            <div className="text-center py-4 text-slate-500">
-              투표가 종료되었습니다.
+          {(proposal as any).status === 'approved' && (
+            <div className="text-center py-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="text-green-800 font-semibold">✅ 제안이 승인되어 소설에 반영되었습니다!</div>
+              <div className="text-green-600 text-sm mt-1">투표율 50%를 달성했습니다.</div>
+            </div>
+          )}
+
+          {(proposal as any).status === 'rejected' && (
+            <div className="text-center py-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="text-red-800 font-semibold">❌ 제안이 거부되었습니다</div>
+              <div className="text-red-600 text-sm mt-1">투표 결과 과반수 찬성을 얻지 못했습니다.</div>
+            </div>
+          )}
+
+          {(proposal as any).status === 'expired' && (
+            <div className="text-center py-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="text-slate-800 font-semibold">⏰ 제안이 만료되었습니다</div>
+              <div className="text-slate-600 text-sm mt-1">투표 기간이 종료되었습니다.</div>
             </div>
           )}
         </Card>

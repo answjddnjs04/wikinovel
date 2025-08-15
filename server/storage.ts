@@ -57,6 +57,7 @@ export interface IStorage {
   
   // Additional proposal operations
   getProposal(id: string): Promise<EditProposal | undefined>;
+  checkAndApplyProposal(proposalId: string): Promise<boolean>;
   
   // Comment operations
   createProposalComment(comment: InsertProposalComment): Promise<ProposalComment>;
@@ -311,6 +312,36 @@ export class DatabaseStorage implements IStorage {
   async getProposal(id: string): Promise<EditProposal | undefined> {
     const [proposal] = await db.select().from(editProposals).where(eq(editProposals.id, id));
     return proposal;
+  }
+
+  async checkAndApplyProposal(proposalId: string): Promise<boolean> {
+    const proposal = await this.getProposal(proposalId);
+    if (!proposal || proposal.status !== 'pending') {
+      return false;
+    }
+
+    const votes = await this.getVotesByProposal(proposalId);
+    const totalWeight = votes.reduce((sum, vote) => sum + (vote.weight || 1), 0);
+    const approveWeight = votes.filter(v => v.voteType === 'approve').reduce((sum, vote) => sum + (vote.weight || 1), 0);
+    
+    if (totalWeight > 0) {
+      const approvalRate = approveWeight / totalWeight;
+      
+      if (approvalRate >= 0.5) {
+        // Apply the proposal
+        await this.updateNovelContent(proposal.novelId, proposal.proposedText);
+        await this.updateProposalStatus(proposal.id, 'approved');
+        
+        // Add contribution record for the proposer
+        const charCount = proposal.proposedText.length;
+        await this.addNovelContribution(proposal.novelId, proposal.proposerId, charCount, 'story');
+        
+        console.log(`Proposal ${proposalId} automatically approved with ${(approvalRate * 100).toFixed(1)}% approval rate`);
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   // Comment operations

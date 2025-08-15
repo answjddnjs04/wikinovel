@@ -39,9 +39,9 @@ export default function NovelProposals() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'pending': return '대기중';
-      case 'approved': return '승인됨';
-      case 'rejected': return '거부됨';
-      case 'expired': return '만료됨';
+      case 'approved': return '✅ 승인됨';
+      case 'rejected': return '❌ 거부됨';
+      case 'expired': return '⏰ 만료됨';
       default: return status;
     }
   };
@@ -156,11 +156,11 @@ export default function NovelProposals() {
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-1 text-green-600">
                       <ThumbsUp className="h-4 w-4" />
-                      <span className="text-sm font-medium">{proposal.approveCount || 0}</span>
+                      <span className="text-sm font-medium">찬성 {proposal.voteCount?.approve || 0}</span>
                     </div>
                     <div className="flex items-center space-x-1 text-red-600">
                       <ThumbsDown className="h-4 w-4" />
-                      <span className="text-sm font-medium">{proposal.rejectCount || 0}</span>
+                      <span className="text-sm font-medium">반대 {proposal.voteCount?.reject || 0}</span>
                     </div>
                   </div>
                   <div className="text-xs text-slate-500">
