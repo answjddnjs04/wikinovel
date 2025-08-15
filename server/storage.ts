@@ -4,6 +4,7 @@ import {
   novelContributions,
   editProposals,
   proposalVotes,
+  proposalComments,
   novelUserTitles,
   type User,
   type UpsertUser,
@@ -15,6 +16,8 @@ import {
   type InsertEditProposal,
   type ProposalVote,
   type InsertProposalVote,
+  type ProposalComment,
+  type InsertProposalComment,
   type NovelUserTitle,
   type InsertNovelUserTitle,
 } from "@shared/schema";
@@ -78,12 +81,26 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(novels).orderBy(desc(novels.updatedAt));
   }
 
-  async getNovelsByGenre(genre: string): Promise<Novel[]> {
-    return await db
-      .select()
+  async getNovelsByGenre(genre: string): Promise<(Novel & { contributorCount: number; activeContributorCount: number; pendingProposals: number })[]> {
+    const novelList = await db
+      .select({
+        novel: novels,
+        contributorCount: sql<number>`count(distinct ${novelContributions.userId})`.as('contributor_count'),
+        activeContributorCount: sql<number>`count(distinct case when ${novelContributions.createdAt} > now() - interval '30 days' then ${novelContributions.userId} end)`.as('active_contributor_count'),
+        pendingProposals: sql<number>`(select count(*) from ${editProposals} ep where ep.novel_id = ${novels.id} and ep.status = 'pending' and ep.expires_at > now())`.as('pending_proposals')
+      })
       .from(novels)
+      .leftJoin(novelContributions, eq(novels.id, novelContributions.novelId))
       .where(eq(novels.genre, genre))
-      .orderBy(desc(novels.updatedAt));
+      .groupBy(novels.id)
+      .orderBy(desc(novels.createdAt));
+    
+    return novelList.map(item => ({
+      ...item.novel,
+      contributorCount: item.contributorCount || 0,
+      activeContributorCount: item.activeContributorCount || 0,
+      pendingProposals: item.pendingProposals || 0
+    }));
   }
 
   async getNovel(id: string): Promise<Novel | undefined> {
@@ -160,12 +177,38 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Proposal operations
-  async getProposalsByNovel(novelId: string): Promise<EditProposal[]> {
-    return await db
-      .select()
+  async getProposalsByNovel(novelId: string): Promise<any[]> {
+    const proposalsWithDetails = await db
+      .select({
+        proposal: editProposals,
+        proposer: users,
+        approveCount: sql<number>`count(case when ${proposalVotes.voteType} = 'approve' then 1 end)`.as('approve_count'),
+        rejectCount: sql<number>`count(case when ${proposalVotes.voteType} = 'reject' then 1 end)`.as('reject_count')
+      })
       .from(editProposals)
+      .leftJoin(users, eq(editProposals.proposerId, users.id))
+      .leftJoin(proposalVotes, eq(editProposals.id, proposalVotes.proposalId))
       .where(eq(editProposals.novelId, novelId))
+      .groupBy(editProposals.id, users.id)
       .orderBy(desc(editProposals.createdAt));
+
+    // Get comments for each proposal
+    const proposalsWithComments = await Promise.all(
+      proposalsWithDetails.map(async (item) => {
+        const comments = await this.getCommentsByProposal(item.proposal.id);
+        return {
+          ...item.proposal,
+          proposer: item.proposer,
+          voteCount: {
+            approve: item.approveCount || 0,
+            reject: item.rejectCount || 0
+          },
+          comments
+        };
+      })
+    );
+
+    return proposalsWithComments;
   }
 
   async createEditProposal(proposal: InsertEditProposal): Promise<EditProposal> {
@@ -201,6 +244,20 @@ export class DatabaseStorage implements IStorage {
         eq(proposalVotes.userId, userId)
       ));
     return vote;
+  }
+
+  // Comment operations
+  async createProposalComment(comment: InsertProposalComment): Promise<ProposalComment> {
+    const [newComment] = await db.insert(proposalComments).values(comment).returning();
+    return newComment;
+  }
+
+  async getCommentsByProposal(proposalId: string): Promise<ProposalComment[]> {
+    return await db
+      .select()
+      .from(proposalComments)
+      .where(eq(proposalComments.proposalId, proposalId))
+      .orderBy(proposalComments.createdAt);
   }
 }
 

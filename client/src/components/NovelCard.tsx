@@ -51,7 +51,14 @@ export default function NovelCard({ novel }: NovelCardProps) {
         )}
         
         <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
-          <span data-testid="text-contributors">기여자 {Math.floor(Math.random() * 30) + 1}명</span>
+          <span data-testid="text-contributors">
+            기여자 {(novel as any).contributorCount || 0}명
+            {(novel as any).activeContributorCount > 0 && (
+              <span className="ml-1 text-green-600">
+                (활성 {(novel as any).activeContributorCount}명)
+              </span>
+            )}
+          </span>
           <span data-testid="text-last-updated">
             {novel.updatedAt ? formatTimeAgo(novel.updatedAt) : "방금 전"} 업데이트
           </span>
@@ -61,11 +68,11 @@ export default function NovelCard({ novel }: NovelCardProps) {
           <div className="flex items-center space-x-2">
             {getStatusBadge()}
             <span className="text-xs text-slate-500" data-testid="text-pending-proposals">
-              {Math.floor(Math.random() * 3)}건
+              제안 {(novel as any).pendingProposals || 0}건
             </span>
           </div>
           
-          <Link href={`/novel/${novel.id}`}>
+          <Link href={`/novels/${novel.id}`}>
             <Button 
               variant="link" 
               className="text-primary hover:text-blue-700 p-0"

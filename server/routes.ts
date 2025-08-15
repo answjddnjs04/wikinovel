@@ -145,6 +145,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
+      const { novelId, proposalType, originalText, proposedText, reason } = req.body;
+      const userId = req.user.claims.sub;
+      
+      // Set expiration to 24 hours from now
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24);
+
+      const proposal = await storage.createEditProposal({
+        novelId,
+        proposerId: userId,
+        proposalType,
+        originalText,
+        proposedText,
+        reason,
+        status: 'pending',
+        expiresAt
+      });
+
+      res.status(201).json(proposal);
+    } catch (error) {
+      console.error("Error creating proposal:", error);
+      res.status(500).json({ message: "Failed to create proposal" });
+    }
+  });
+
+  // Voting routes
+  app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
+    try {
+      const { proposalId, voteType } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Check if user already voted
+      const existingVote = await storage.getUserVote(proposalId, userId);
+      if (existingVote) {
+        return res.status(400).json({ message: "User has already voted on this proposal" });
+      }
+
+      const vote = await storage.createProposalVote({
+        proposalId,
+        userId,
+        voteType,
+        weight: 1 // TODO: Calculate based on user contributions
+      });
+
+      res.status(201).json(vote);
+    } catch (error) {
+      console.error("Error creating vote:", error);
+      res.status(500).json({ message: "Failed to create vote" });
+    }
+  });
+
+  // Comment routes
+  app.post('/api/proposal-comments', isAuthenticated, async (req: any, res) => {
+    try {
+      const { proposalId, content } = req.body;
+      const userId = req.user.claims.sub;
+
+      const comment = await storage.createProposalComment({
+        proposalId,
+        userId,
+        content
+      });
+
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
+    try {
       const userId = req.user.claims.sub;
       const proposalData = insertEditProposalSchema.parse({
         ...req.body,

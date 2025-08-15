@@ -46,8 +46,21 @@ export const novels = pgTable("novels", {
   content: text("content").default(""), // 전체 소설 내용
   worldSetting: text("world_setting"), // 세계관 설정
   rules: text("rules"), // 소설 규칙
+  currentEpisode: integer("current_episode").default(1),
+  episodeThreshold: integer("episode_threshold").default(3000), // 화당 글자 수 기준
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// 화(Episode) 테이블 - 소설을 화 단위로 구분
+export const episodes = pgTable("episodes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  novelId: varchar("novel_id").references(() => novels.id).notNull(),
+  episodeNumber: integer("episode_number").notNull(),
+  title: varchar("title"), // 화 제목 (선택사항)
+  content: text("content").notNull(),
+  charCount: integer("char_count").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // 소설 수정 제안 (전체 텍스트 기반)
@@ -96,26 +109,33 @@ export const proposalVotes = pgTable("proposal_votes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// 제안에 대한 댓글/토론
+export const proposalComments = pgTable("proposal_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  proposalId: varchar("proposal_id").references(() => editProposals.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   novelContributions: many(novelContributions),
   editProposals: many(editProposals),
   proposalVotes: many(proposalVotes),
+  proposalComments: many(proposalComments),
 }));
 
 export const novelsRelations = relations(novels, ({ many }) => ({
-  contributions: many(novelContributions),
+  episodes: many(episodes),
   editProposals: many(editProposals),
+  novelContributions: many(novelContributions),
 }));
 
-export const novelContributionsRelations = relations(novelContributions, ({ one }) => ({
+export const episodesRelations = relations(episodes, ({ one }) => ({
   novel: one(novels, {
-    fields: [novelContributions.novelId],
+    fields: [episodes.novelId],
     references: [novels.id],
-  }),
-  user: one(users, {
-    fields: [novelContributions.userId],
-    references: [users.id],
   }),
 }));
 
@@ -129,6 +149,29 @@ export const editProposalsRelations = relations(editProposals, ({ one, many }) =
     references: [users.id],
   }),
   votes: many(proposalVotes),
+  comments: many(proposalComments),
+}));
+
+export const proposalCommentsRelations = relations(proposalComments, ({ one }) => ({
+  proposal: one(editProposals, {
+    fields: [proposalComments.proposalId],
+    references: [editProposals.id],
+  }),
+  user: one(users, {
+    fields: [proposalComments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const novelContributionsRelations = relations(novelContributions, ({ one }) => ({
+  novel: one(novels, {
+    fields: [novelContributions.novelId],
+    references: [novels.id],
+  }),
+  user: one(users, {
+    fields: [novelContributions.userId],
+    references: [users.id],
+  }),
 }));
 
 export const proposalVotesRelations = relations(proposalVotes, ({ one }) => ({
@@ -187,16 +230,30 @@ export const insertNovelUserTitleSchema = createInsertSchema(novelUserTitles).om
   updatedAt: true,
 });
 
+export const insertEpisodeSchema = createInsertSchema(episodes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertProposalCommentSchema = createInsertSchema(proposalComments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Novel = typeof novels.$inferSelect;
 export type InsertNovel = z.infer<typeof insertNovelSchema>;
+export type Episode = typeof episodes.$inferSelect;
+export type InsertEpisode = z.infer<typeof insertEpisodeSchema>;
 export type NovelContribution = typeof novelContributions.$inferSelect;
 export type InsertNovelContribution = z.infer<typeof insertNovelContributionSchema>;
 export type EditProposal = typeof editProposals.$inferSelect;
 export type InsertEditProposal = z.infer<typeof insertEditProposalSchema>;
 export type ProposalVote = typeof proposalVotes.$inferSelect;
 export type InsertProposalVote = z.infer<typeof insertProposalVoteSchema>;
+export type ProposalComment = typeof proposalComments.$inferSelect;
+export type InsertProposalComment = z.infer<typeof insertProposalCommentSchema>;
 export type NovelUserTitle = typeof novelUserTitles.$inferSelect;
 export type InsertNovelUserTitle = z.infer<typeof insertNovelUserTitleSchema>;
