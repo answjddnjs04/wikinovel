@@ -337,33 +337,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch votes" });
     }
   });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
-      }
-      console.error("Error creating vote:", error);
-      res.status(500).json({ message: "Failed to create vote" });
-    }
-  });
-
   // Comment routes
-  // Vote 라우트 추가
-app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
-  try {
-    // Handle different authentication providers (same as /api/auth/user)
-    let userId: string;
-    
-    if (req.user.provider === 'kakao') {
-      userId = req.user.id;
-    } else {
-      userId = req.user.claims.sub;
-    }
-    const { proposalId, voteType } = req.body;
-    // ... 나머지 vote 코드 ...
-  } catch (error) {
-    // vote 에러 처리
-  }
-});
+  
       console.error("Error creating comment:", error);
       res.status(500).json({ message: "Failed to create comment" });
     }
