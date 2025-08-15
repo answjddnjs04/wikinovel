@@ -69,7 +69,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/novels', isAuthenticated, async (req: any, res) => {
     try {
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -95,7 +94,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { content } = req.body;
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -121,7 +119,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { rules } = req.body;
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -158,7 +155,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's proposals
   app.get('/api/my-proposals', isAuthenticated, async (req: any, res) => {
     try {
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -166,6 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         userId = req.user.claims.sub;
       }
+      
       const proposals = await storage.getUserProposals(userId);
       res.json(proposals);
     } catch (error) {
@@ -178,7 +175,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/proposals/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -186,6 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         userId = req.user.claims.sub;
       }
+      
       const success = await storage.deleteProposal(id, userId);
       
       if (!success) {
@@ -201,7 +198,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -209,6 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         userId = req.user.claims.sub;
       }
+      
       const proposalData = insertEditProposalSchema.parse({ ...req.body, proposerId: userId });
       const proposal = await storage.createEditProposal(proposalData);
       res.status(201).json(proposal);
@@ -241,7 +238,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id: proposalId } = req.params;
       const { voteType } = req.body;
       
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -289,7 +285,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/proposal-comments', isAuthenticated, async (req: any, res) => {
     try {
       const { proposalId, content } = req.body;
-      // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
@@ -334,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Auto-apply proposals endpoint (can be called by cron job)
+  // Auto-apply proposals endpoint
   app.post('/api/proposals/auto-apply', async (req, res) => {
     try {
       await storage.checkAndApplyProposals();
