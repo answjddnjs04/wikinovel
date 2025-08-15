@@ -4,8 +4,10 @@ import Header from "@/components/Header";
 import WebNovelReader from "@/components/WebNovelReader";
 import ReferencePanel from "@/components/ReferencePanel";
 import ContributorRanking from "@/components/ContributorRanking";
+import EpisodeList from "@/components/EpisodeList";
+import ProposalsList from "@/components/ProposalsList";
 import { useState } from "react";
-import { BookOpen, FileText, Settings, ArrowLeft, Crown } from "lucide-react";
+import { BookOpen, FileText, Settings, ArrowLeft, Crown, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
@@ -13,7 +15,8 @@ import type { Novel } from "@shared/schema";
 
 export default function NovelDetail() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState("story");
+  const [activeTab, setActiveTab] = useState("episodes");
+  const [selectedEpisode, setSelectedEpisode] = useState<number | null>(null);
 
   const { data: novel } = useQuery<Novel>({
     queryKey: ["/api/novels", id],
@@ -69,12 +72,16 @@ export default function NovelDetail() {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Main Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white rounded-lg shadow-sm border border-slate-200">
-            <TabsTrigger value="story" className="flex items-center space-x-2" data-testid="tab-story">
+          <TabsList className="grid w-full grid-cols-5 bg-white rounded-lg shadow-sm border border-slate-200">
+            <TabsTrigger value="episodes" className="flex items-center space-x-2" data-testid="tab-episodes">
               <BookOpen className="h-4 w-4" />
-              <span>소설</span>
+              <span>읽기</span>
+            </TabsTrigger>
+            <TabsTrigger value="proposals" className="flex items-center space-x-2" data-testid="tab-proposals">
+              <List className="h-4 w-4" />
+              <span>목록</span>
             </TabsTrigger>
             <TabsTrigger value="ranking" className="flex items-center space-x-2" data-testid="tab-ranking">
               <Crown className="h-4 w-4" />
@@ -90,9 +97,23 @@ export default function NovelDetail() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="story" className="space-y-0">
-            <WebNovelReader novel={novel} />
+          <TabsContent value="episodes" className="space-y-0">
+            {selectedEpisode ? (
+              <WebNovelReader novel={novel} selectedEpisode={selectedEpisode} />
+            ) : (
+              <EpisodeList 
+                novel={novel} 
+                onEpisodeSelect={setSelectedEpisode}
+                selectedEpisode={selectedEpisode}
+              />
+            )}
           </TabsContent>
+
+          <TabsContent value="proposals" className="space-y-0">
+            <ProposalsList novelId={novel.id} />
+          </TabsContent>
+
+
 
           <TabsContent value="ranking" className="space-y-0">
             <ContributorRanking novelId={novel.id} />

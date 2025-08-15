@@ -12,9 +12,10 @@ import CommentTextRenderer from "./CommentTextRenderer";
 
 interface WebNovelReaderProps {
   novel: Novel;
+  selectedEpisode?: number;
 }
 
-export default function WebNovelReader({ novel }: WebNovelReaderProps) {
+export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReaderProps) {
   const [isProposing, setIsProposing] = useState(false);
   const [proposalTitle, setProposalTitle] = useState("");
   const [proposalContent, setProposalContent] = useState("");
@@ -151,24 +152,16 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-2 text-slate-600">
-              <Eye className="h-4 w-4" />
-              <span className="text-sm">읽기 모드</span>
+              <BookOpen className="h-4 w-4" />
+              <span className="text-sm">
+                {selectedEpisode ? `${selectedEpisode}화 읽기` : "전체 읽기"}
+              </span>
             </div>
             <div className="flex space-x-2">
-              <Link href={`/novels/${novel.id}/proposals`}>
-                <Button variant="outline" size="sm" data-testid="button-view-proposals">
-                  <Vote className="h-4 w-4 mr-2" />
-                  제안 목록
-                </Button>
-              </Link>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setIsProposing(true);
-                  setProposalContent(novel.content || "");
-                  setProposalReason("");
-                }}
+                onClick={handleStartProposal}
                 data-testid="button-propose-edit"
               >
                 <Edit3 className="h-4 w-4 mr-2" />
@@ -179,35 +172,50 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
 
           {novel.content ? (
             <div className="space-y-8">
-              {episodes.map((episode, index) => (
-                <div key={index} className="border-b border-slate-100 pb-8 last:border-b-0">
+              {selectedEpisode ? (
+                // 선택된 화만 표시
+                <div className="pb-8">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-slate-700" data-testid={`episode-title-${episode.number}`}>
-                      {episode.number}화
+                    <h3 className="text-lg font-semibold text-slate-700" data-testid={`episode-title-${selectedEpisode}`}>
+                      {selectedEpisode}화
                     </h3>
                     <span className="text-sm text-slate-500">
-                      {episode.charCount}자
+                      {episodes.find(ep => ep.number === selectedEpisode)?.charCount || 0}자
                     </span>
                   </div>
                   <div 
                     className="prose prose-slate max-w-none text-slate-800 leading-relaxed text-lg whitespace-pre-wrap"
-                    data-testid={`episode-content-${episode.number}`}
+                    data-testid={`episode-content-${selectedEpisode}`}
                   >
                     <CommentTextRenderer 
-                      text={episode.content}
+                      text={episodes.find(ep => ep.number === selectedEpisode)?.content || ""}
                       className=""
                     />
                   </div>
                 </div>
-              ))}
-              
-              {episodes.length === 0 && (
-                <div 
-                  className="text-slate-800 leading-relaxed text-lg whitespace-pre-wrap"
-                  data-testid="novel-content-display"
-                >
-                  {novel.content}
-                </div>
+              ) : (
+                // 전체 화 표시
+                episodes.map((episode, index) => (
+                  <div key={index} className="border-b border-slate-100 pb-8 last:border-b-0">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-slate-700" data-testid={`episode-title-${episode.number}`}>
+                        {episode.number}화
+                      </h3>
+                      <span className="text-sm text-slate-500">
+                        {episode.charCount}자
+                      </span>
+                    </div>
+                    <div 
+                      className="prose prose-slate max-w-none text-slate-800 leading-relaxed text-lg whitespace-pre-wrap"
+                      data-testid={`episode-content-${episode.number}`}
+                    >
+                      <CommentTextRenderer 
+                        text={episode.content}
+                        className=""
+                      />
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           ) : (
