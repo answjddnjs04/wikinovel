@@ -337,49 +337,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch votes" });
     }
   });
-
-  
-      let userId: string;
-      
-      if (req.user.provider === 'kakao') {
-        userId = req.user.id;
-      } else {
-        userId = req.user.claims.sub;
-      }
-      const { proposalId, voteType } = req.body;
-
-      // Check if user already voted
-      const existingVote = await storage.getUserVote(proposalId, userId);
-      if (existingVote) {
-        return res.status(400).json({ message: "User has already voted on this proposal" });
-      }
-
-      // Get the proposal to find the novel
-      const proposal = await storage.getProposal(proposalId);
-      if (!proposal) {
-        return res.status(404).json({ message: "Proposal not found" });
-      }
-      
-      // Calculate vote weight based on user contributions to the novel
-      const userContributions = await storage.getUserContributionsByNovel(userId, proposal.novelId);
-      const weight = Math.max(1, Math.floor(userContributions / 100)); // 100글자당 1가중치, 최소 1
-
-      const voteData = insertProposalVoteSchema.parse({
-        proposalId,
-        userId,
-        voteType,
-        weight,
-      });
-
-      const vote = await storage.createProposalVote(voteData);
-      
-      // Check if proposal should be automatically applied after this vote
-      const wasApplied = await storage.checkAndApplyProposal(proposalId);
-      
-      res.status(201).json({ 
-        ...vote, 
-        proposalApplied: wasApplied 
-      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
