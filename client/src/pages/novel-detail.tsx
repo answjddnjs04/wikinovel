@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import WebNovelReader from "@/components/WebNovelReader";
 import ReferencePanel from "@/components/ReferencePanel";
+import ContributorRanking from "@/components/ContributorRanking";
 import { useState } from "react";
 import { BookOpen, FileText, Settings, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -86,7 +87,14 @@ export default function NovelDetail() {
           </TabsList>
 
           <TabsContent value="story" className="space-y-0">
-            <WebNovelReader novel={novel} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2">
+                <WebNovelReader novel={novel} />
+              </div>
+              <div className="space-y-6">
+                <ContributorRanking novelId={novel.id} />
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="worldSetting" className="space-y-0">

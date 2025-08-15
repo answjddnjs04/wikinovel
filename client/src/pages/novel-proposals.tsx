@@ -196,12 +196,23 @@ export default function NovelProposals() {
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <h4 className="font-medium text-slate-800 mb-2">제안 내용</h4>
-                    <div className="bg-slate-50 p-4 rounded-lg">
-                      <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed">
-                        {proposal.proposedText}
-                      </p>
+                  {/* Split View for Proposal Content */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium text-slate-800 mb-2">기존 내용</h4>
+                      <div className="bg-slate-100 p-4 rounded-lg border border-slate-300">
+                        <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed max-h-40 overflow-y-auto">
+                          {proposal.originalText || "기존 내용 없음"}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">제안 내용</h4>
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-300">
+                        <p className="text-blue-900 whitespace-pre-wrap text-sm leading-relaxed max-h-40 overflow-y-auto">
+                          {proposal.proposedText}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -226,6 +237,18 @@ export default function NovelProposals() {
                         <MessageSquare className="h-4 w-4 text-blue-500" />
                         <span className="text-slate-600">{proposal.comments.length}</span>
                       </div>
+                      {/* 투표율 표시 */}
+                      {(proposal.voteCount.approve + proposal.voteCount.reject) > 0 && (
+                        <div className="flex items-center space-x-1 text-sm">
+                          <span className="text-slate-500">찬성률:</span>
+                          <span className={`font-semibold ${
+                            (proposal.voteCount.approve / (proposal.voteCount.approve + proposal.voteCount.reject)) >= 0.5 
+                              ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            {Math.round((proposal.voteCount.approve / (proposal.voteCount.approve + proposal.voteCount.reject)) * 100)}%
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center space-x-2">

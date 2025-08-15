@@ -259,6 +259,93 @@ export class DatabaseStorage implements IStorage {
       .where(eq(proposalComments.proposalId, proposalId))
       .orderBy(proposalComments.createdAt);
   }
+
+  // Contributor ranking operations
+  async getContributorsByNovel(novelId: string): Promise<any[]> {
+    const contributors = await db
+      .select({
+        userId: novelContributions.userId,
+        userName: users.firstName,
+        userEmail: users.email,
+        totalContribution: sum(novelContributions.charCount).as('total_contribution')
+      })
+      .from(novelContributions)
+      .leftJoin(users, eq(novelContributions.userId, users.id))
+      .where(eq(novelContributions.novelId, novelId))
+      .groupBy(novelContributions.userId, users.firstName, users.email)
+      .orderBy(desc(sum(novelContributions.charCount)));
+
+    // Calculate total novel content for percentage
+    const totalResult = await db
+      .select({
+        total: sum(novelContributions.charCount)
+      })
+      .from(novelContributions)
+      .where(eq(novelContributions.novelId, novelId));
+
+    const total = Number(totalResult[0]?.total || 1);
+
+    return contributors.map((contributor, index) => {
+      const contributionAmount = Number(contributor.totalContribution || 0);
+      const percentage = (contributionAmount / total) * 100;
+      
+      // Determine title based on contribution percentage
+      let title = "참여자";
+      if (percentage >= 40) {
+        title = "원작자";
+      } else if (percentage >= 20) {
+        title = "공동작가";
+      } else if (percentage >= 10) {
+        title = "주요 기여자";
+      } else if (percentage >= 1) {
+        title = "기여자";
+      }
+
+      return {
+        userId: contributor.userId,
+        userName: contributor.userName || contributor.userEmail || '익명',
+        totalContribution: contributionAmount,
+        contributionPercentage: percentage,
+        title,
+        rank: index + 1
+      };
+    });
+  }
+
+  // Auto-apply proposals with majority vote
+  async checkAndApplyProposals(): Promise<void> {
+    const expiredProposals = await db
+      .select()
+      .from(editProposals)
+      .where(and(
+        eq(editProposals.status, 'pending'),
+        sql`${editProposals.expiresAt} <= now()`
+      ));
+
+    for (const proposal of expiredProposals) {
+      const votes = await this.getVotesByProposal(proposal.id);
+      const totalVotes = votes.length;
+      const approveVotes = votes.filter(v => v.voteType === 'approve').length;
+      
+      if (totalVotes > 0) {
+        const approvalRate = approveVotes / totalVotes;
+        
+        if (approvalRate >= 0.5) {
+          // Apply the proposal
+          await this.updateNovelContent(proposal.novelId, proposal.proposedText);
+          await this.updateProposalStatus(proposal.id, 'approved');
+          
+          // Add contribution record for the proposer
+          const charCount = proposal.proposedText.length;
+          await this.addNovelContribution(proposal.novelId, proposal.proposerId, charCount, 'story');
+        } else {
+          await this.updateProposalStatus(proposal.id, 'rejected');
+        }
+      } else {
+        await this.updateProposalStatus(proposal.id, 'expired');
+      }
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

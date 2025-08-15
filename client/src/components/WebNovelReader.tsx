@@ -190,13 +190,13 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
         </div>
       )}
 
-      {/* Proposal Mode */}
+      {/* Proposal Mode - Split View */}
       {isProposing && (
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center space-x-2 text-slate-600">
               <Edit3 className="h-4 w-4" />
-              <span className="text-sm">수정 제안 모드</span>
+              <span className="text-sm">수정 제안 모드 - 좌측: 기존 내용, 우측: 제안 내용</span>
             </div>
             <div className="flex space-x-2">
               <Button
@@ -221,40 +221,50 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                제안 내용
-              </label>
+          {/* Split View Container */}
+          <div className="grid grid-cols-2 gap-6 mb-6">
+            {/* Left: Original Content */}
+            <div className="border border-slate-300 rounded-lg p-4 bg-slate-50">
+              <h4 className="font-semibold text-slate-700 mb-3">기존 내용</h4>
+              <div className="prose prose-slate max-w-none">
+                <div className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap max-h-[500px] overflow-y-auto">
+                  {novel.content || "아직 작성된 내용이 없습니다."}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Proposed Content */}
+            <div className="border border-blue-300 rounded-lg p-4 bg-blue-50">
+              <h4 className="font-semibold text-blue-700 mb-3">제안 내용</h4>
               <Textarea
                 value={proposalContent}
                 onChange={(e) => setProposalContent(e.target.value)}
                 placeholder="수정할 내용을 작성해주세요..."
-                className="min-h-[400px] text-lg leading-relaxed resize-none border-slate-200 focus:border-blue-300"
+                className="min-h-[450px] text-base leading-relaxed resize-none border-blue-200 focus:border-blue-400 bg-white"
                 data-testid="textarea-proposal-content"
               />
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                제안 이유 (선택사항)
-              </label>
-              <Textarea
-                value={proposalReason}
-                onChange={(e) => setProposalReason(e.target.value)}
-                placeholder="왜 이런 수정이 필요한지 설명해주세요..."
-                className="min-h-[100px] resize-none border-slate-200 focus:border-blue-300"
-                data-testid="textarea-proposal-reason"
-              />
-            </div>
+          </div>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              제안 이유 (선택사항)
+            </label>
+            <Textarea
+              value={proposalReason}
+              onChange={(e) => setProposalReason(e.target.value)}
+              placeholder="왜 이런 수정이 필요한지 설명해주세요..."
+              className="min-h-[100px] resize-none border-slate-200 focus:border-blue-300"
+              data-testid="textarea-proposal-reason"
+            />
           </div>
 
-          <div className="mt-6 p-4 bg-blue-50 rounded-lg text-sm text-blue-800">
+          <div className="p-4 bg-blue-50 rounded-lg text-sm text-blue-800">
             <h4 className="font-medium mb-2">제안-투표 시스템 안내</h4>
             <ul className="space-y-1">
               <li>• 제안된 내용은 24시간 동안 투표를 받습니다</li>
               <li>• 다른 참여자들의 기여도에 따라 투표 가중치가 결정됩니다</li>
-              <li>• 과반수 찬성 시 자동으로 적용됩니다</li>
+              <li>• 50% 이상 찬성 시 자동으로 적용됩니다</li>
               <li>• 세계관과 규칙을 확인한 후 제안해주세요</li>
             </ul>
           </div>

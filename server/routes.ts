@@ -215,6 +215,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contributor ranking routes
+  app.get('/api/novels/:id/contributors', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const contributors = await storage.getContributorsByNovel(id);
+      res.json(contributors);
+    } catch (error) {
+      console.error("Error fetching contributors:", error);
+      res.status(500).json({ message: "Failed to fetch contributors" });
+    }
+  });
+
+  // Auto-apply proposals endpoint (can be called by cron job)
+  app.post('/api/proposals/auto-apply', async (req, res) => {
+    try {
+      await storage.checkAndApplyProposals();
+      res.json({ message: "Proposals checked and applied successfully" });
+    } catch (error) {
+      console.error("Error auto-applying proposals:", error);
+      res.status(500).json({ message: "Failed to auto-apply proposals" });
+    }
+  });
+
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
