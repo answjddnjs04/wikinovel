@@ -338,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
- Handle different authentication providers (same as /api/auth/user)
+ //Handle different authentication providers (same as /api/auth/user)
       let userId: string;
       
       if (req.user.provider === 'kakao') {
