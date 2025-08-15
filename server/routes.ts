@@ -155,6 +155,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete proposal
+  app.delete('/api/proposals/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user.claims.sub;
+      const success = await storage.deleteProposal(id, userId);
+      
+      if (!success) {
+        return res.status(403).json({ message: "Cannot delete this proposal" });
+      }
+      
+      res.json({ message: "Proposal deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting proposal:", error);
+      res.status(500).json({ message: "Failed to delete proposal" });
+    }
+  });
+
   // Get single proposal by ID
   app.get('/api/proposals/:proposalId', async (req, res) => {
     try {

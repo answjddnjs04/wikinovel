@@ -1,16 +1,45 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, CheckCircle, XCircle, RefreshCw, Eye, Edit3 } from "lucide-react";
+import { Clock, CheckCircle, XCircle, RefreshCw, Eye, Edit3, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 import Header from "@/components/Header";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 export default function MyProposals() {
+  const { toast } = useToast();
   const { data: proposals, isLoading } = useQuery({
     queryKey: ["/api/my-proposals"],
+  });
+
+  const deleteProposalMutation = useMutation({
+    mutationFn: async (proposalId: string) => {
+      const response = await fetch(`/api/proposals/${proposalId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to delete proposal');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/my-proposals"] });
+      toast({
+        title: "제안이 삭제되었습니다",
+        description: "제안이 성공적으로 삭제되었습니다.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "삭제 실패",
+        description: "제안을 삭제할 수 없습니다. (승인된 제안은 삭제할 수 없습니다)",
+        variant: "destructive",
+      });
+    },
   });
 
   const getStatusIcon = (status: string) => {
@@ -187,6 +216,20 @@ export default function MyProposals() {
                           다시 제안하기
                         </Button>
                       </Link>
+                    )}
+
+                    {proposal.status !== 'approved' && (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => deleteProposalMutation.mutate(proposal.id)}
+                        disabled={deleteProposalMutation.isPending}
+                        data-testid={`button-delete-${proposal.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        삭제
+                      </Button>
                     )}
                   </div>
                 </div>

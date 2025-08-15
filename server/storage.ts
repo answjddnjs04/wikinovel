@@ -62,6 +62,10 @@ export interface IStorage {
   // Comment operations
   createProposalComment(comment: InsertProposalComment): Promise<ProposalComment>;
   getCommentsByProposal(proposalId: string): Promise<any[]>;
+  
+  // User proposal management
+  getUserProposals(userId: string): Promise<any[]>;
+  deleteProposal(proposalId: string, userId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -635,6 +639,33 @@ export class DatabaseStorage implements IStorage {
       approveCount: Number(proposal.approveCount),
       rejectCount: Number(proposal.rejectCount)
     }));
+  }
+
+  // Delete proposal (only by the proposer, only if not approved)
+  async deleteProposal(proposalId: string, userId: string): Promise<boolean> {
+    const proposal = await db
+      .select()
+      .from(editProposals)
+      .where(eq(editProposals.id, proposalId));
+    
+    if (!proposal[0]) {
+      return false;
+    }
+    
+    // Check if user is the proposer and proposal is not approved
+    if (proposal[0].proposerId !== userId || proposal[0].status === 'approved') {
+      return false;
+    }
+    
+    // Delete associated votes and comments first
+    await db.delete(proposalVotes).where(eq(proposalVotes.proposalId, proposalId));
+    await db.delete(proposalComments).where(eq(proposalComments.proposalId, proposalId));
+    await db.delete(proposalViews).where(eq(proposalViews.proposalId, proposalId));
+    
+    // Delete the proposal
+    await db.delete(editProposals).where(eq(editProposals.id, proposalId));
+    
+    return true;
   }
 }
 

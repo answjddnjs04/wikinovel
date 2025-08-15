@@ -110,11 +110,7 @@ export default function WeeklyLeaderboard() {
               <div className="font-semibold text-slate-800" data-testid={`entry-value-${entry.id}`}>
                 {formatValue(entry.value, valueType)}
               </div>
-              {entry.percentage !== undefined && (
-                <div className="text-xs text-slate-500">
-                  승인률 {entry.percentage.toFixed(1)}%
-                </div>
-              )}
+
             </div>
           </div>
         ))
@@ -133,7 +129,7 @@ export default function WeeklyLeaderboard() {
       </div>
 
       <Tabs defaultValue="approved" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="approved" className="text-xs">
             <CheckCircle className="h-3 w-3 mr-1" />
             반영 소설
@@ -145,10 +141,6 @@ export default function WeeklyLeaderboard() {
           <TabsTrigger value="suggestionViews" className="text-xs">
             <TrendingUp className="h-3 w-3 mr-1" />
             제안 조회
-          </TabsTrigger>
-          <TabsTrigger value="approvalRate" className="text-xs">
-            <Trophy className="h-3 w-3 mr-1" />
-            승인률
           </TabsTrigger>
         </TabsList>
 
@@ -176,13 +168,7 @@ export default function WeeklyLeaderboard() {
           {renderLeaderboardList(leaderboard.suggestionViews, 'views')}
         </TabsContent>
 
-        <TabsContent value="approvalRate" className="space-y-0">
-          <div className="mb-2">
-            <h4 className="font-medium text-slate-700">승인률 랭킹</h4>
-            <p className="text-xs text-slate-500">이번 주 승인률 기준 (최소 3개 제안)</p>
-          </div>
-          {renderLeaderboardList(leaderboard.approvalRates, 'percentage')}
-        </TabsContent>
+
       </Tabs>
 
       <div className="mt-4 pt-4 border-t border-slate-200 text-center">
