@@ -264,9 +264,27 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
                     <h3 className="text-lg font-semibold text-slate-700" data-testid={`episode-title-${selectedEpisode}`}>
                       {selectedEpisode}화
                     </h3>
-                    <span className="text-sm text-slate-500">
-                      {episodes.find(ep => ep.number === selectedEpisode)?.charCount || 0}자
-                    </span>
+                    <div className="flex items-center space-x-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsProposing(true);
+                          setProposalType("episodeTitle");
+                          setProposalTitle(`${selectedEpisode}화 제목 수정`);
+                          setProposalContent("");
+                          setProposalReason("");
+                        }}
+                        className="text-slate-500 hover:text-slate-700"
+                        data-testid={`button-edit-title-${selectedEpisode}`}
+                      >
+                        <Edit3 className="h-3 w-3 mr-1" />
+                        제목 수정
+                      </Button>
+                      <span className="text-sm text-slate-500">
+                        {episodes.find(ep => ep.number === selectedEpisode)?.charCount || 0}자
+                      </span>
+                    </div>
                   </div>
                   <div 
                     className="prose prose-slate max-w-none text-slate-800 leading-relaxed text-lg whitespace-pre-wrap"

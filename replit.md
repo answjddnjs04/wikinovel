@@ -29,6 +29,9 @@ Preferred communication style: Simple, everyday language.
 - **실시간 데이터 표시**: Mock 데이터 대신 실제 데이터베이스 수치 기반 통계 제공
 - **통계 UI 간소화**: Landing 페이지 플랫폼 현황을 핵심 지표 2개로 단순화
 - **회차별 조회수 수정**: EpisodeList의 랜덤 조회수를 실제 데이터 기반으로 변경 (기본값 0)
+- **회차별 조회수 추적**: 회차 읽기 시 자동 조회수 증가 API 구현
+- **화 제목 수정 제안**: 특정 회차 읽기 모드에서 화 제목 수정 제안 기능 추가
+- **제안 모드 UI 개선**: 주석 설명 문구 제거로 깔끔한 제안 인터페이스 구현
 
 # System Architecture
 
