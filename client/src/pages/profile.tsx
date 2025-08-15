@@ -12,7 +12,7 @@ import { z } from "zod";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "닉네임을 입력해주세요").max(50, "닉네임은 50자 이내로 입력해주세요")
@@ -23,6 +23,10 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export default function Profile() {
   const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+  const [location] = useLocation();
+  
+  // Check if this is first time setup
+  const isFirstTime = new URLSearchParams(location.split('?')[1] || '').get('firstTime') === 'true';
 
   const { data: userProfile, isLoading } = useQuery({
     queryKey: ["/api/auth/user"],
@@ -60,10 +64,19 @@ export default function Profile() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      toast({
-        title: "닉네임 변경 완료",
-        description: "닉네임이 성공적으로 변경되었습니다."
-      });
+      if (isFirstTime) {
+        toast({
+          title: "환영합니다!",
+          description: "프로필 설정이 완료되었습니다. 위키노벨을 시작해보세요!"
+        });
+        // Redirect to home after first time setup
+        window.location.href = "/";
+      } else {
+        toast({
+          title: "닉네임 변경 완료",
+          description: "닉네임이 성공적으로 변경되었습니다."
+        });
+      }
     },
     onError: (error) => {
       toast({
@@ -120,9 +133,12 @@ export default function Profile() {
 
         <Card data-testid="card-profile">
           <CardHeader>
-            <CardTitle>내 프로필</CardTitle>
+            <CardTitle>{isFirstTime ? "프로필 설정" : "내 프로필"}</CardTitle>
             <CardDescription>
-              닉네임을 변경할 수 있습니다. 프로필 사진은 카카오 계정의 이미지가 사용됩니다.
+              {isFirstTime 
+                ? "위키노벨에 오신 것을 환영합니다! 사용하실 닉네임을 설정해주세요."
+                : "닉네임을 변경할 수 있습니다. 프로필 사진은 카카오 계정의 이미지가 사용됩니다."
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -174,14 +190,28 @@ export default function Profile() {
                 </div>
 
                 {/* Submit Button */}
-                <Button 
-                  type="submit" 
-                  className="w-full"
-                  disabled={updateProfile.isPending}
-                  data-testid="button-save-profile"
-                >
-                  {updateProfile.isPending ? "저장 중..." : "닉네임 저장"}
-                </Button>
+                <div className="space-y-3">
+                  <Button 
+                    type="submit" 
+                    className={`w-full ${isFirstTime ? 'bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600' : ''}`}
+                    disabled={updateProfile.isPending}
+                    data-testid="button-save-profile"
+                  >
+                    {updateProfile.isPending ? "저장 중..." : (isFirstTime ? "시작하기" : "닉네임 저장")}
+                  </Button>
+                  
+                  {isFirstTime && (
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      className="w-full text-slate-600 hover:text-slate-800"
+                      onClick={() => window.location.href = "/"}
+                      data-testid="button-skip-setup"
+                    >
+                      나중에 설정하기
+                    </Button>
+                  )}
+                </div>
               </form>
             </Form>
           </CardContent>

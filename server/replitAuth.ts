@@ -70,13 +70,23 @@ async function upsertUser(
 async function upsertKakaoUser(
   profile: any,
 ) {
-  await storage.upsertUser({
-    id: profile.id.toString(),
+  const userId = profile.id.toString();
+  
+  // Check if user already exists
+  const existingUser = await storage.getUser(userId);
+  const isNewUser = !existingUser;
+  
+  const userData = {
+    id: userId,
     email: profile._json.kakao_account?.email || null,
     firstName: profile.displayName || profile.username,
     lastName: "",
     profileImageUrl: profile._json.kakao_account?.profile?.profile_image_url || null,
-  });
+  };
+  
+  await storage.upsertUser(userData);
+  
+  return { isNewUser };
 }
 
 export async function setupAuth(app: Express) {
@@ -128,15 +138,16 @@ export async function setupAuth(app: Express) {
       });
       
       try {
-        await upsertKakaoUser(profile);
-        console.log('User upserted successfully');
+        const { isNewUser } = await upsertKakaoUser(profile);
+        console.log('User upserted successfully, isNewUser:', isNewUser);
         
         const user = {
           id: profile.id.toString(),
           provider: 'kakao',
           accessToken,
           refreshToken,
-          profile
+          profile,
+          isNewUser
         };
         
         console.log('Returning user object:', {
@@ -234,7 +245,15 @@ export async function setupAuth(app: Express) {
       console.log('=== KAKAO AUTHENTICATION SUCCESSFUL ===');
       console.log('User authenticated:', req.user ? 'YES' : 'NO');
       console.log('Session:', req.session.id);
-      res.redirect("/");
+      
+      // Check if this is a new user and redirect to profile setup
+      const user = req.user as any;
+      if (user && user.isNewUser) {
+        console.log('New user detected, redirecting to profile setup');
+        res.redirect("/profile?firstTime=true");
+      } else {
+        res.redirect("/");
+      }
     }
   );
 

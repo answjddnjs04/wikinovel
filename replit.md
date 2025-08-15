@@ -9,6 +9,10 @@ Preferred communication style: Simple, everyday language.
 # Recent Changes (2025-08-15)
 
 ## Implemented Features
+- **카카오 OAuth 로그인**: 완전한 카카오톡 소셜 로그인 시스템 구현 및 디버깅 완료
+- **신규 사용자 온보딩**: 처음 로그인 시 자동으로 프로필 설정 화면으로 리다이렉트
+- **사용자 프로필 관리**: 닉네임 변경 기능과 카카오 프로필 사진 자동 연동
+- **Header 프로필 연동**: 사용자 정보 클릭시 프로필 페이지 이동 기능
 - **댓글 시스템**: 제안 상세 페이지에 완전한 댓글 작성/조회 기능 구현
 - **가중 투표 시스템**: 사용자 기여도(100글자당 1가중치)에 따른 투표 권한 차등 적용
 - **홈 페이지 직접 접근**: 인증된 사용자는 랜딩 페이지를 건너뛰고 바로 홈으로 이동
@@ -56,10 +60,12 @@ The schema uses a block-based content structure:
 This design enables granular content editing and maintains complete revision history.
 
 ## Authentication & Authorization
-- **Replit OpenID Connect** integration for user authentication
+- **Dual Authentication System**: Replit OpenID Connect와 Kakao OAuth 2.0 통합 인증
 - **Session-based** state management with PostgreSQL session storage
+- **Kakao Social Login**: 카카오톡 계정을 통한 소셜 로그인 지원
 - **Contribution-based** authorization where voting weight correlates to user participation
 - **Title system** that assigns user roles based on contribution percentages
+- **Automatic Profile Setup**: 신규 사용자의 첫 로그인 시 프로필 설정 자동 안내
 
 ## Content Management System
 The platform implements a sophisticated collaborative editing workflow:
