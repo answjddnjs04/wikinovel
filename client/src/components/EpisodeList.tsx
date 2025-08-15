@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Clock, Eye } from "lucide-react";
+import { Play, Clock, Eye, Plus } from "lucide-react";
 import type { Novel } from "@shared/schema";
 
 interface Episode {
@@ -18,9 +18,10 @@ interface EpisodeListProps {
   novel: Novel;
   onEpisodeSelect: (episode: number) => void;
   selectedEpisode: number | null;
+  onNewEpisodeProposal?: (episodeNumber: number) => void;
 }
 
-export default function EpisodeList({ novel, onEpisodeSelect, selectedEpisode }: EpisodeListProps) {
+export default function EpisodeList({ novel, onEpisodeSelect, selectedEpisode, onNewEpisodeProposal }: EpisodeListProps) {
   // 소설 내용을 화별로 나누는 함수
   const getEpisodes = (): Episode[] => {
     if (!novel.content) return [];
@@ -91,8 +92,22 @@ export default function EpisodeList({ novel, onEpisodeSelect, selectedEpisode }:
         <h2 className="text-2xl font-bold text-slate-800">
           전체 {episodes.length}화
         </h2>
-        <div className="text-sm text-slate-600">
-          총 {novel.content?.length || 0}자 • 예상 독서시간 {Math.ceil((novel.content?.length || 0) / 300)}분
+        <div className="flex items-center space-x-4">
+          {onNewEpisodeProposal && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onNewEpisodeProposal(episodes.length + 1)}
+              className="flex items-center space-x-2"
+              data-testid="button-new-episode"
+            >
+              <Plus className="h-4 w-4" />
+              <span>다음회차 제안하기</span>
+            </Button>
+          )}
+          <div className="text-sm text-slate-600">
+            총 {novel.content?.length || 0}자 • 예상 독서시간 {Math.ceil((novel.content?.length || 0) / 300)}분
+          </div>
         </div>
       </div>
 

@@ -458,9 +458,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User has already voted on this proposal" });
       }
 
-      // Calculate vote weight based on user's contribution to the novel
-      // For now, use a simple weight calculation
-      const weight = 100; // TODO: Calculate based on actual contributions
+      // Get the proposal to find the novel
+      const proposal = await storage.getProposal(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      
+      // Calculate vote weight based on user contributions to the novel
+      const userContributions = await storage.getUserContributionsByNovel(userId, proposal.novelId);
+      const weight = Math.max(1, Math.floor(userContributions / 100)); // 100글자당 1가중치, 최소 1
 
       const voteData = insertProposalVoteSchema.parse({
         proposalId,

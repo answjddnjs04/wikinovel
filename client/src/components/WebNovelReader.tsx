@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import type { Novel } from "@shared/schema";
 import CommentTextRenderer from "./CommentTextRenderer";
+import EpisodeList from "./EpisodeList";
 
 interface WebNovelReaderProps {
   novel: Novel;
@@ -20,7 +21,8 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
   const [proposalTitle, setProposalTitle] = useState("");
   const [proposalContent, setProposalContent] = useState("");
   const [proposalReason, setProposalReason] = useState("");
-  const [proposalType, setProposalType] = useState<"modification" | "worldSetting" | "rules" | "episodeTitle">("modification");
+  const [proposalType, setProposalType] = useState<"modification" | "worldSetting" | "rules" | "episodeTitle" | "addition">("modification");
+  const [newEpisodeNumber, setNewEpisodeNumber] = useState<number | null>(null);
   const [showEpisodeList, setShowEpisodeList] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -87,6 +89,7 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
       setProposalTitle("");
       setProposalContent("");
       setProposalReason("");
+      setNewEpisodeNumber(null);
     },
     onError: () => {
       toast({
@@ -231,29 +234,27 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
 
           {/* Episode List Modal */}
           {showEpisodeList && novel.content && (
-            <div className="mb-6 p-4 bg-slate-50 rounded-lg border">
-              <h4 className="font-semibold mb-3">회차 목록</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                {episodes.map((episode) => (
-                  <Button
-                    key={episode.number}
-                    variant={selectedEpisode === episode.number ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      if (selectedEpisode === episode.number) {
-                        // 현재 선택된 화를 다시 클릭하면 전체 보기
-                        window.location.href = `/novels/${novel.id}`;
-                      } else {
-                        window.location.href = `/novels/${novel.id}?episode=${episode.number}`;
-                      }
-                    }}
-                    className="justify-center"
-                    data-testid={`button-episode-${episode.number}`}
-                  >
-                    {episode.number}화
-                  </Button>
-                ))}
-              </div>
+            <div className="mb-6">
+              <EpisodeList 
+                novel={novel}
+                selectedEpisode={selectedEpisode}
+                onEpisodeSelect={(episodeNumber) => {
+                  if (selectedEpisode === episodeNumber) {
+                    // 현재 선택된 화를 다시 클릭하면 전체 보기
+                    window.location.href = `/novels/${novel.id}`;
+                  } else {
+                    window.location.href = `/novels/${novel.id}?episode=${episodeNumber}`;
+                  }
+                }}
+                onNewEpisodeProposal={(episodeNumber) => {
+                  setIsProposing(true);
+                  setProposalType("addition");
+                  setNewEpisodeNumber(episodeNumber);
+                  setProposalTitle(`${episodeNumber}화 추가`);
+                  setProposalContent("");
+                  setProposalReason("");
+                }}
+              />
             </div>
           )}
 
@@ -387,6 +388,8 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
               placeholder={
                 proposalType === "episodeTitle" 
                   ? "화 제목을 입력해주세요" 
+                  : proposalType === "addition"
+                  ? "새 회차 제안 제목을 입력해주세요"
                   : "제안 제목을 입력해주세요 (예: 캐릭터 대화 개선, 스토리 전개 수정)"
               }
               className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -414,6 +417,35 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
                     placeholder="새로운 화 제목을 입력해주세요..."
                     className="w-full p-3 text-lg border border-blue-200 rounded-md focus:border-blue-400 bg-white"
                     data-testid="input-episode-title"
+                  />
+                </div>
+              </>
+            ) : proposalType === "addition" ? (
+              // 새 회차 추가 모드
+              <>
+                <div className="border border-slate-300 rounded-lg p-4 bg-slate-50">
+                  <h4 className="font-semibold text-slate-700 mb-3">이전 회차 마지막 부분</h4>
+                  <div className="prose prose-slate max-w-none text-slate-600">
+                    <CommentTextRenderer 
+                      text={(() => {
+                        const lines = novel.content?.split('\n') || [];
+                        return lines.slice(-3).join('\n');
+                      })()}
+                      className="text-slate-600 leading-relaxed text-base whitespace-pre-wrap"
+                    />
+                  </div>
+                  <div className="text-xs text-slate-500 mt-2 border-t pt-2">
+                    ↑ 이전 내용 (수정 불가)
+                  </div>
+                </div>
+                <div className="border border-blue-300 rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-semibold text-blue-700 mb-3">{newEpisodeNumber}화 새 내용</h4>
+                  <Textarea
+                    value={proposalContent}
+                    onChange={(e) => setProposalContent(e.target.value)}
+                    placeholder="새로운 회차의 내용을 작성해주세요..."
+                    className="min-h-[350px] text-base leading-relaxed resize-none border-blue-200 focus:border-blue-400 bg-white"
+                    data-testid="textarea-new-episode-content"
                   />
                 </div>
               </>
