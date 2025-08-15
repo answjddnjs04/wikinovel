@@ -15,12 +15,22 @@ export default function Landing() {
                 위키소설
               </h1>
             </div>
-            <Button 
-              onClick={() => window.location.href = '/api/login'}
-              data-testid="button-login"
-            >
-              로그인
-            </Button>
+            <div className="flex items-center space-x-3">
+              <Button 
+                onClick={() => window.location.href = '/api/auth/kakao'}
+                className="bg-yellow-400 hover:bg-yellow-500 text-black"
+                data-testid="button-kakao-login"
+              >
+                카카오 로그인
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/api/login'}
+                data-testid="button-replit-login"
+              >
+                Replit 로그인
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -36,14 +46,25 @@ export default function Landing() {
             위키백과의 집단 참여 시스템을 웹소설 창작에 접목한 혁신적인 플랫폼입니다. 
             독자와 작가가 함께 스토리를 만들어가세요.
           </p>
-          <Button 
-            size="lg"
-            onClick={() => window.location.href = '/api/login'}
-            className="text-lg px-8 py-3"
-            data-testid="button-get-started"
-          >
-            지금 시작하기
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Button 
+              size="lg"
+              onClick={() => window.location.href = '/api/auth/kakao'}
+              className="text-lg px-8 py-3 bg-yellow-400 hover:bg-yellow-500 text-black"
+              data-testid="button-kakao-get-started"
+            >
+              카카오로 시작하기
+            </Button>
+            <Button 
+              size="lg"
+              variant="outline"
+              onClick={() => window.location.href = '/api/login'}
+              className="text-lg px-8 py-3"
+              data-testid="button-replit-get-started"
+            >
+              Replit으로 시작하기
+            </Button>
+          </div>
         </div>
       </section>
 

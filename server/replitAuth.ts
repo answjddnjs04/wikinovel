@@ -1,5 +1,6 @@
 import * as client from "openid-client";
 import { Strategy, type VerifyFunction } from "openid-client/passport";
+import { Strategy as KakaoStrategy } from "passport-kakao";
 
 import passport from "passport";
 import session from "express-session";
@@ -66,6 +67,18 @@ async function upsertUser(
   });
 }
 
+async function upsertKakaoUser(
+  profile: any,
+) {
+  await storage.upsertUser({
+    id: profile.id.toString(),
+    email: profile._json.kakao_account?.email || null,
+    firstName: profile.displayName || profile.username,
+    lastName: "",
+    profileImageUrl: profile._json.kakao_account?.profile?.profile_image_url || null,
+  });
+}
+
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
@@ -83,6 +96,32 @@ export async function setupAuth(app: Express) {
     await upsertUser(tokens.claims());
     verified(null, user);
   };
+
+  // Kakao OAuth Strategy
+  if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
+    passport.use(new KakaoStrategy({
+      clientID: process.env.KAKAO_CLIENT_ID,
+      clientSecret: process.env.KAKAO_CLIENT_SECRET,
+      callbackURL: process.env.REPLIT_DOMAINS 
+        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}/api/auth/kakao/callback`
+        : "http://localhost:5000/api/auth/kakao/callback"
+    },
+    async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+      try {
+        await upsertKakaoUser(profile);
+        const user = {
+          id: profile.id.toString(),
+          provider: 'kakao',
+          accessToken,
+          refreshToken,
+          profile
+        };
+        return done(null, user);
+      } catch (error) {
+        return done(error);
+      }
+    }));
+  }
 
   for (const domain of process.env
     .REPLIT_DOMAINS!.split(",")) {
@@ -115,6 +154,19 @@ export async function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  // Kakao OAuth routes
+  app.get("/api/auth/kakao", passport.authenticate("kakao"));
+
+  app.get("/api/auth/kakao/callback", 
+    passport.authenticate("kakao", { 
+      failureRedirect: "/landing" 
+    }),
+    (req, res) => {
+      // Successful authentication, redirect to home
+      res.redirect("/");
+    }
+  );
+
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
       res.redirect(
@@ -130,7 +182,17 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  // Handle Kakao users (they don't have expires_at)
+  if (user.provider === 'kakao') {
+    return next();
+  }
+
+  // Handle Replit users with token expiration
+  if (!user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
