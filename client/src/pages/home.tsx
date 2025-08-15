@@ -6,7 +6,7 @@ import NovelCard from "@/components/NovelCard";
 import CreateNovelModal from "@/components/CreateNovelModal";
 import SimpleWeeklyLeaderboard from "@/components/SimpleWeeklyLeaderboard";
 import { Button } from "@/components/ui/button";
-import { Plus, Trophy } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Link } from "wouter";
 import type { Novel } from "@shared/schema";
 
@@ -52,12 +52,6 @@ export default function Home() {
                 {selectedGenre} 소설
               </h2>
               <div className="flex space-x-3">
-                <Link href="/leaderboard">
-                  <Button variant="outline" data-testid="button-leaderboard">
-                    <Trophy className="mr-2 h-4 w-4" />
-                    주간 리더보드
-                  </Button>
-                </Link>
                 <Button 
                   onClick={() => setIsCreateModalOpen(true)}
                   data-testid="button-create-novel"
