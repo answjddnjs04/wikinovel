@@ -62,9 +62,11 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
         proposalType: proposalType,
         originalText: proposalType === "modification" ? novel.content || "" : 
                      proposalType === "worldSetting" ? novel.worldSetting || "" :
-                     novel.rules || "",
+                     proposalType === "rules" ? novel.rules || "" :
+                     proposalType === "episodeTitle" ? `${selectedEpisode}화` : "",
         proposedText: proposalContent,
         reason: proposalReason,
+        episodeNumber: proposalType === "episodeTitle" ? selectedEpisode : undefined,
       });
     },
     onSuccess: () => {
@@ -382,7 +384,11 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
               type="text"
               value={proposalTitle}
               onChange={(e) => setProposalTitle(e.target.value)}
-              placeholder="제안 제목을 입력해주세요 (예: 캐릭터 대화 개선, 스토리 전개 수정)"
+              placeholder={
+                proposalType === "episodeTitle" 
+                  ? "화 제목을 입력해주세요" 
+                  : "제안 제목을 입력해주세요 (예: 캐릭터 대화 개선, 스토리 전개 수정)"
+              }
               className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               data-testid="input-proposal-title"
             />
@@ -390,28 +396,51 @@ export default function WebNovelReader({ novel, selectedEpisode }: WebNovelReade
 
           {/* Split View Container */}
           <div className="grid grid-cols-2 gap-6 mb-6">
-            {/* Left: Original Content */}
-            <div className="border border-slate-300 rounded-lg p-4 bg-slate-50">
-              <h4 className="font-semibold text-slate-700 mb-3">기존 내용</h4>
-              <div className="prose prose-slate max-w-none">
-                <CommentTextRenderer 
-                  text={novel.content || "아직 작성된 내용이 없습니다."}
-                  className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap max-h-[400px] overflow-y-auto"
-                />
-              </div>
-            </div>
-
-            {/* Right: Proposed Content */}
-            <div className="border border-blue-300 rounded-lg p-4 bg-blue-50">
-              <h4 className="font-semibold text-blue-700 mb-3">제안 내용</h4>
-              <Textarea
-                value={proposalContent}
-                onChange={(e) => setProposalContent(e.target.value)}
-                placeholder="수정할 내용을 작성해주세요..."
-                className="min-h-[350px] text-base leading-relaxed resize-none border-blue-200 focus:border-blue-400 bg-white"
-                data-testid="textarea-proposal-content"
-              />
-            </div>
+            {proposalType === "episodeTitle" ? (
+              // 화 제목 수정 모드
+              <>
+                <div className="border border-slate-300 rounded-lg p-4 bg-slate-50">
+                  <h4 className="font-semibold text-slate-700 mb-3">현재 제목</h4>
+                  <div className="text-lg font-medium text-slate-800">
+                    {selectedEpisode}화
+                  </div>
+                </div>
+                <div className="border border-blue-300 rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-semibold text-blue-700 mb-3">새 제목</h4>
+                  <input
+                    type="text"
+                    value={proposalContent}
+                    onChange={(e) => setProposalContent(e.target.value)}
+                    placeholder="새로운 화 제목을 입력해주세요..."
+                    className="w-full p-3 text-lg border border-blue-200 rounded-md focus:border-blue-400 bg-white"
+                    data-testid="input-episode-title"
+                  />
+                </div>
+              </>
+            ) : (
+              // 일반 내용 수정 모드
+              <>
+                <div className="border border-slate-300 rounded-lg p-4 bg-slate-50">
+                  <h4 className="font-semibold text-slate-700 mb-3">기존 내용</h4>
+                  <div className="prose prose-slate max-w-none">
+                    <CommentTextRenderer 
+                      text={novel.content || "아직 작성된 내용이 없습니다."}
+                      className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap max-h-[400px] overflow-y-auto"
+                    />
+                  </div>
+                </div>
+                <div className="border border-blue-300 rounded-lg p-4 bg-blue-50">
+                  <h4 className="font-semibold text-blue-700 mb-3">제안 내용</h4>
+                  <Textarea
+                    value={proposalContent}
+                    onChange={(e) => setProposalContent(e.target.value)}
+                    placeholder="수정할 내용을 작성해주세요..."
+                    className="min-h-[350px] text-base leading-relaxed resize-none border-blue-200 focus:border-blue-400 bg-white"
+                    data-testid="textarea-proposal-content"
+                  />
+                </div>
+              </>
+            )}
           </div>
           
           <div className="mb-6">

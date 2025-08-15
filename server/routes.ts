@@ -226,8 +226,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
-      const { novelId, proposalType, originalText, proposedText, reason, title } = req.body;
-      const userId = req.user.claims.sub;
+      const { novelId, proposalType, originalText, proposedText, reason, title, episodeNumber } = req.body;
+      const userId = req.user?.claims?.sub;
+      
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
       
       console.log('Received proposal data:', { novelId, proposalType, originalText, proposedText, reason, title, userId });
       
@@ -243,6 +247,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         proposedText,
         reason,
         title: title || proposedText.substring(0, 50) + (proposedText.length > 50 ? '...' : ''),
+        episodeNumber: episodeNumber || null,
         views: 0,
         expiresAt
       });

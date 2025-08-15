@@ -71,9 +71,10 @@ export const editProposals = pgTable("edit_proposals", {
   novelId: varchar("novel_id").references(() => novels.id).notNull(),
   proposerId: varchar("proposer_id").references(() => users.id).notNull(),
   title: varchar("title"), // 제안 제목
-  proposalType: varchar("proposal_type").notNull(), // 'addition', 'modification', 'worldSetting', 'rules'
+  proposalType: varchar("proposal_type").notNull(), // 'addition', 'modification', 'worldSetting', 'rules', 'episodeTitle'
   originalText: text("original_text"), // 수정할 기존 텍스트 (추가의 경우 null)
   proposedText: text("proposed_text").notNull(), // 제안하는 새 텍스트
+  episodeNumber: integer("episode_number"), // 화 제목 수정시 해당 화 번호
   insertPosition: integer("insert_position"), // 텍스트 삽입 위치 (추가의 경우)
   reason: text("reason"),
   status: varchar("status").default("pending"), // pending, approved, rejected, expired, needs_review
