@@ -111,7 +111,8 @@ export async function setupAuth(app: Express) {
       clientSecret: process.env.KAKAO_CLIENT_SECRET,
       callbackURL: process.env.REPLIT_DOMAINS 
         ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}/api/auth/kakao/callback`
-        : "http://localhost:5000/api/auth/kakao/callback"
+        : "http://localhost:5000/api/auth/kakao/callback",
+
     },
     async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       console.log('=== KAKAO STRATEGY CALLBACK ===');
