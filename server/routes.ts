@@ -395,21 +395,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { proposalId, content } = req.body;
       // Handle different authentication providers (same as /api/auth/user)
       let userId: string;
-      
-      if (req.user.provider === 'kakao') {
-        userId = req.user.id;
-      } else {
-        userId = req.user.claims.sub;
-      }
-
-      const comment = await storage.createProposalComment({
-        proposalId,
-        userId,
-        content
-      });
-
-      res.status(201).json(comment);
-    } catch (error) {
+    
+    if (req.user.provider === 'kakao') {
+      userId = req.user.id;
+    } else {
+      userId = req.user.claims.sub;
+    }
+    const { proposalId, voteType } = req.body;
+    // ... 나머지 코드 ...
+  } catch (error) {
+    // 에러 처리 코드
+  }
+});
       console.error("Error creating comment:", error);
       res.status(500).json({ message: "Failed to create comment" });
     }
