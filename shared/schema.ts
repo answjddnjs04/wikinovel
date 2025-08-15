@@ -67,6 +67,17 @@ export const blockContributions = pgTable("block_contributions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Novel-specific user titles (소설별 칭호)
+export const novelUserTitles = pgTable("novel_user_titles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  novelId: varchar("novel_id").references(() => novels.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  title: varchar("title").notNull(),
+  contributionPercentage: integer("contribution_percentage").notNull(),
+  totalCharContribution: integer("total_char_contribution").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Proposals for block modifications
 export const proposals = pgTable("proposals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -144,6 +155,17 @@ export const votesRelations = relations(votes, ({ one }) => ({
   }),
 }));
 
+export const novelUserTitlesRelations = relations(novelUserTitles, ({ one }) => ({
+  novel: one(novels, {
+    fields: [novelUserTitles.novelId],
+    references: [novels.id],
+  }),
+  user: one(users, {
+    fields: [novelUserTitles.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -174,6 +196,11 @@ export const insertVoteSchema = createInsertSchema(votes).omit({
   createdAt: true,
 });
 
+export const insertNovelUserTitleSchema = createInsertSchema(novelUserTitles).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -186,3 +213,5 @@ export type Proposal = typeof proposals.$inferSelect;
 export type InsertProposal = z.infer<typeof insertProposalSchema>;
 export type Vote = typeof votes.$inferSelect;
 export type InsertVote = z.infer<typeof insertVoteSchema>;
+export type NovelUserTitle = typeof novelUserTitles.$inferSelect;
+export type InsertNovelUserTitle = z.infer<typeof insertNovelUserTitleSchema>;

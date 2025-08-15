@@ -3,12 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import NovelCard from "@/components/NovelCard";
+import CreateNovelModal from "@/components/CreateNovelModal";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import type { Novel } from "@shared/schema";
 
 export default function Home() {
   const [selectedGenre, setSelectedGenre] = useState<string>("판타지");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const { data: novels = [], isLoading } = useQuery<Novel[]>({
     queryKey: ["/api/novels", selectedGenre],
@@ -18,12 +20,16 @@ export default function Home() {
     },
   });
 
+  const { data: genreCounts = {} } = useQuery<Record<string, number>>({
+    queryKey: ["/api/novels/genre-counts"],
+  });
+
   const genres = [
-    { name: "판타지", slug: "판타지", count: 142 },
-    { name: "로맨스", slug: "로맨스", count: 87 },
-    { name: "미스터리", slug: "미스터리", count: 64 },
-    { name: "SF", slug: "SF", count: 39 },
-    { name: "스릴러", slug: "스릴러", count: 52 },
+    { name: "판타지", slug: "판타지", count: genreCounts["판타지"] || 0 },
+    { name: "로맨스", slug: "로맨스", count: genreCounts["로맨스"] || 0 },
+    { name: "미스터리", slug: "미스터리", count: genreCounts["미스터리"] || 0 },
+    { name: "SF", slug: "SF", count: genreCounts["SF"] || 0 },
+    { name: "스릴러", slug: "스릴러", count: genreCounts["스릴러"] || 0 },
   ];
 
   return (
@@ -43,7 +49,10 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-slate-800" data-testid="text-genre-title">
                 {selectedGenre} 소설
               </h2>
-              <Button data-testid="button-create-novel">
+              <Button 
+                onClick={() => setIsCreateModalOpen(true)}
+                data-testid="button-create-novel"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 새 소설 시작
               </Button>
@@ -68,7 +77,10 @@ export default function Home() {
                 <p className="text-slate-600 mb-4" data-testid="text-empty-state">
                   {selectedGenre} 장르에 아직 소설이 없습니다.
                 </p>
-                <Button data-testid="button-create-first-novel">
+                <Button 
+                  onClick={() => setIsCreateModalOpen(true)}
+                  data-testid="button-create-first-novel"
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   첫 번째 소설을 시작해보세요
                 </Button>
@@ -83,6 +95,11 @@ export default function Home() {
           </main>
         </div>
       </div>
+      
+      <CreateNovelModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+      />
     </div>
   );
 }

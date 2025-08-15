@@ -5,6 +5,7 @@ import {
   blockContributions,
   proposals,
   votes,
+  novelUserTitles,
   type User,
   type UpsertUser,
   type Novel,
@@ -16,9 +17,11 @@ import {
   type InsertProposal,
   type Vote,
   type InsertVote,
+  type NovelUserTitle,
+  type InsertNovelUserTitle,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sum, count } from "drizzle-orm";
+import { eq, desc, and, sum, count, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -30,6 +33,7 @@ export interface IStorage {
   getNovelsByGenre(genre: string): Promise<Novel[]>;
   getNovel(id: string): Promise<Novel | undefined>;
   createNovel(novel: InsertNovel): Promise<Novel>;
+  getNovelCountsByGenre(): Promise<Record<string, number>>;
   
   // Block operations
   getBlocksByNovel(novelId: string): Promise<Block[]>;
@@ -96,6 +100,21 @@ export class DatabaseStorage implements IStorage {
   async createNovel(novel: InsertNovel): Promise<Novel> {
     const [newNovel] = await db.insert(novels).values(novel).returning();
     return newNovel;
+  }
+
+  async getNovelCountsByGenre(): Promise<Record<string, number>> {
+    const result = await db
+      .select({
+        genre: novels.genre,
+        count: count(),
+      })
+      .from(novels)
+      .groupBy(novels.genre);
+    
+    return result.reduce((acc, row) => {
+      acc[row.genre] = row.count;
+      return acc;
+    }, {} as Record<string, number>);
   }
 
   // Block operations

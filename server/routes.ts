@@ -35,6 +35,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get('/api/novels/genre-counts', async (req, res) => {
+    try {
+      const counts = await storage.getNovelCountsByGenre();
+      res.json(counts);
+    } catch (error) {
+      console.error("Error fetching genre counts:", error);
+      res.status(500).json({ message: "Failed to fetch genre counts" });
+    }
+  });
+
   app.get('/api/novels/:id', async (req, res) => {
     try {
       const { id } = req.params;
