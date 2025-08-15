@@ -114,8 +114,22 @@ export async function setupAuth(app: Express) {
         : "http://localhost:5000/api/auth/kakao/callback"
     },
     async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+      console.log('=== KAKAO STRATEGY CALLBACK ===');
+      console.log('Access token received:', accessToken ? 'YES' : 'NO');
+      console.log('Refresh token received:', refreshToken ? 'YES' : 'NO');
+      console.log('Profile received:', {
+        id: profile?.id,
+        username: profile?.username,
+        displayName: profile?.displayName,
+        emails: profile?.emails,
+        photos: profile?.photos,
+        _json: profile?._json ? 'PRESENT' : 'MISSING'
+      });
+      
       try {
         await upsertKakaoUser(profile);
+        console.log('User upserted successfully');
+        
         const user = {
           id: profile.id.toString(),
           provider: 'kakao',
@@ -123,8 +137,16 @@ export async function setupAuth(app: Express) {
           refreshToken,
           profile
         };
+        
+        console.log('Returning user object:', {
+          id: user.id,
+          provider: user.provider,
+          hasAccessToken: !!user.accessToken
+        });
+        
         return done(null, user);
       } catch (error) {
+        console.error('Error in Kakao strategy callback:', error);
         return done(error);
       }
     }));
@@ -163,24 +185,68 @@ export async function setupAuth(app: Express) {
 
   // Kakao OAuth routes
   app.get("/api/auth/kakao", (req, res, next) => {
-    console.log('Kakao login request initiated');
+    console.log('=== KAKAO LOGIN INITIATED ===');
+    console.log('Request headers:', {
+      host: req.get('host'),
+      'user-agent': req.get('user-agent'),
+      referer: req.get('referer')
+    });
+    console.log('Environment check:', {
+      KAKAO_CLIENT_ID: process.env.KAKAO_CLIENT_ID ? 'SET' : 'NOT_SET',
+      KAKAO_CLIENT_SECRET: process.env.KAKAO_CLIENT_SECRET ? 'SET' : 'NOT_SET',
+      REPLIT_DOMAINS: process.env.REPLIT_DOMAINS
+    });
+    
     passport.authenticate("kakao")(req, res, next);
   });
 
   app.get("/api/auth/kakao/callback", 
     (req, res, next) => {
-      console.log('Kakao callback received:', req.query);
+      console.log('=== KAKAO CALLBACK RECEIVED ===');
+      console.log('Query parameters:', req.query);
+      console.log('Request URL:', req.url);
+      console.log('Full URL:', `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+      
+      // Check for errors in callback
+      if (req.query.error) {
+        console.error('Kakao OAuth error in callback:', {
+          error: req.query.error,
+          error_description: req.query.error_description,
+          state: req.query.state
+        });
+        return res.redirect('/landing?error=kakao_oauth_error&details=' + encodeURIComponent(String(req.query.error_description || req.query.error || 'unknown')));
+      }
+      
+      if (!req.query.code) {
+        console.error('No authorization code received in callback');
+        return res.redirect('/landing?error=kakao_no_code');
+      }
+      
+      console.log('Authorization code received, proceeding with authentication');
       next();
     },
     passport.authenticate("kakao", { 
-      failureRedirect: "/landing?error=kakao_login_failed" 
+      failureRedirect: "/landing?error=kakao_auth_failed",
+      failureFlash: false
     }),
     (req, res) => {
-      console.log('Kakao authentication successful');
-      // Successful authentication, redirect to home
+      console.log('=== KAKAO AUTHENTICATION SUCCESSFUL ===');
+      console.log('User authenticated:', req.user ? 'YES' : 'NO');
+      console.log('Session:', req.session.id);
       res.redirect("/");
     }
   );
+
+  // Error handling for Kakao auth
+  app.get("/api/auth/kakao/error", (req, res) => {
+    console.log('=== KAKAO AUTH ERROR ENDPOINT ===');
+    console.log('Query params:', req.query);
+    res.json({
+      error: 'Kakao authentication failed',
+      details: req.query,
+      timestamp: new Date().toISOString()
+    });
+  });
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {

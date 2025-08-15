@@ -1,8 +1,41 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, Vote, Award } from "lucide-react";
+import { BookOpen, Users, Vote, Award, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function Landing() {
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    const details = urlParams.get('details');
+    
+    if (error) {
+      let message = '';
+      switch (error) {
+        case 'kakao_oauth_error':
+          message = `카카오 OAuth 오류: ${details || '알 수 없는 오류'}`;
+          break;
+        case 'kakao_auth_error':
+          message = '카카오 인증 과정에서 오류가 발생했습니다.';
+          break;
+        case 'kakao_no_user':
+          message = '카카오 로그인에서 사용자 정보를 받아올 수 없습니다.';
+          break;
+        case 'kakao_no_code':
+          message = '카카오에서 인증 코드를 받지 못했습니다.';
+          break;
+        case 'kakao_auth_failed':
+          message = '카카오 인증이 실패했습니다.';
+          break;
+        default:
+          message = `로그인 오류: ${error}`;
+      }
+      setErrorMessage(message);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -34,6 +67,16 @@ export default function Landing() {
           </div>
         </div>
       </header>
+
+      {/* Error Message */}
+      {errorMessage && (
+        <div className="bg-red-50 border border-red-200 px-4 py-3 mx-4 mt-4 rounded-lg">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <p className="text-red-700">{errorMessage}</p>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
