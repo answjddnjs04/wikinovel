@@ -1,0 +1,174 @@
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, Users, Vote, Award } from "lucide-react";
+
+export default function Landing() {
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <h1 className="text-xl font-bold text-slate-800">
+                <BookOpen className="inline mr-2 text-primary" />
+                위키소설
+              </h1>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/api/login'}
+              data-testid="button-login"
+            >
+              로그인
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-slate-800 mb-6">
+            모든 사람이 작가가 되는<br />
+            <span className="text-primary">위키형 참여소설</span>
+          </h1>
+          <p className="text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
+            위키백과의 집단 참여 시스템을 웹소설 창작에 접목한 혁신적인 플랫폼입니다. 
+            독자와 작가가 함께 스토리를 만들어가세요.
+          </p>
+          <Button 
+            size="lg"
+            onClick={() => window.location.href = '/api/login'}
+            className="text-lg px-8 py-3"
+            data-testid="button-get-started"
+          >
+            지금 시작하기
+          </Button>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-slate-800 mb-12">
+            위키소설의 특별한 기능들
+          </h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <Card>
+              <CardHeader>
+                <BookOpen className="h-8 w-8 text-primary mb-2" />
+                <CardTitle>블록 단위 편집</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  소설을 블록 단위로 나누어 특정 부분만 수정 제안할 수 있습니다.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Vote className="h-8 w-8 text-primary mb-2" />
+                <CardTitle>민주적 투표</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  수정 제안에 대해 기여도 기반의 가중 투표로 반영 여부를 결정합니다.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Users className="h-8 w-8 text-primary mb-2" />
+                <CardTitle>협업 창작</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  여러 작가가 함께 참여하여 하나의 완성된 작품을 만들어갑니다.
+                </CardDescription>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <Award className="h-8 w-8 text-primary mb-2" />
+                <CardTitle>칭호 시스템</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription>
+                  기여도에 따라 다양한 칭호를 획득하고 작가로서의 성장을 확인하세요.
+                </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* How it Works */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-slate-800 mb-12">
+            어떻게 작동하나요?
+          </h2>
+          <div className="space-y-8">
+            <div className="flex items-start space-x-4">
+              <div className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                1
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-800 mb-2">소설 선택 및 읽기</h3>
+                <p className="text-slate-600">
+                  장르별로 분류된 다양한 소설 중에서 관심 있는 작품을 선택하여 읽어보세요.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-4">
+              <div className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                2
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-800 mb-2">블록 선택 및 수정 제안</h3>
+                <p className="text-slate-600">
+                  마음에 들지 않는 부분이나 개선할 수 있는 부분을 선택하여 수정안을 제안하세요.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-4">
+              <div className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                3
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-800 mb-2">투표 참여</h3>
+                <p className="text-slate-600">
+                  다른 사람들의 수정 제안에 대해 투표하고, 내 제안에 대한 피드백을 받으세요.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start space-x-4">
+              <div className="bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">
+                4
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold text-slate-800 mb-2">기여도 축적 및 성장</h3>
+                <p className="text-slate-600">
+                  승인된 제안을 통해 기여도를 쌓고, 더 높은 칭호와 투표 권한을 획득하세요.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-slate-200 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-slate-500">
+          © 2024 위키소설. 모든 기여는 Creative Commons 라이선스 하에 공유됩니다.
+        </div>
+      </footer>
+    </div>
+  );
+}
