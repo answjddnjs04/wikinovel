@@ -214,8 +214,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEditProposal(proposal: InsertEditProposal): Promise<EditProposal> {
-    const [newProposal] = await db.insert(editProposals).values(proposal).returning();
-    return newProposal;
+    console.log('Creating edit proposal with data:', proposal);
+    try {
+      const [newProposal] = await db.insert(editProposals).values(proposal).returning();
+      console.log('Successfully created proposal:', newProposal);
+      return newProposal;
+    } catch (error) {
+      console.error('Error creating edit proposal:', error);
+      throw error;
+    }
   }
 
   async deleteEditProposal(proposalId: string, userId: string): Promise<boolean> {

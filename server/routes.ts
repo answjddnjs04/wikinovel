@@ -145,8 +145,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
-      const { novelId, proposalType, originalText, proposedText, reason } = req.body;
+      const { novelId, proposalType, originalText, proposedText, reason, title } = req.body;
       const userId = req.user.claims.sub;
+      
+      console.log('Received proposal data:', { novelId, proposalType, originalText, proposedText, reason, title, userId });
       
       // Set expiration to 24 hours from now
       const expiresAt = new Date();
@@ -159,7 +161,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         originalText,
         proposedText,
         reason,
+        title: title || proposedText.substring(0, 50) + (proposedText.length > 50 ? '...' : ''),
         status: 'pending',
+        views: 0,
         expiresAt
       });
 

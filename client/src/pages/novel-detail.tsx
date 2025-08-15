@@ -3,11 +3,11 @@ import { useQuery } from "@tanstack/react-query";
 import Header from "@/components/Header";
 import WebNovelReader from "@/components/WebNovelReader";
 import ReferencePanel from "@/components/ReferencePanel";
-import ContributorRanking from "@/components/ContributorRanking";
+
 import EpisodeList from "@/components/EpisodeList";
 import ProposalsList from "@/components/ProposalsList";
 import { useState } from "react";
-import { BookOpen, FileText, Settings, ArrowLeft, Crown, List, MessageSquare } from "lucide-react";
+import { BookOpen, FileText, Settings, ArrowLeft, List, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
@@ -89,7 +89,7 @@ export default function NovelDetail() {
 
         {/* Main Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white rounded-lg shadow-sm border border-slate-200">
+          <TabsList className="grid w-full grid-cols-5 bg-white rounded-lg shadow-sm border border-slate-200">
             <TabsTrigger value="episodes" className="flex items-center space-x-2" data-testid="tab-episodes">
               <BookOpen className="h-4 w-4" />
               <span>읽기</span>
@@ -101,10 +101,6 @@ export default function NovelDetail() {
             <TabsTrigger value="proposals" className="flex items-center space-x-2" data-testid="tab-proposals">
               <MessageSquare className="h-4 w-4" />
               <span>제안</span>
-            </TabsTrigger>
-            <TabsTrigger value="ranking" className="flex items-center space-x-2" data-testid="tab-ranking">
-              <Crown className="h-4 w-4" />
-              <span>순위</span>
             </TabsTrigger>
             <TabsTrigger value="worldSetting" className="flex items-center space-x-2" data-testid="tab-world">
               <FileText className="h-4 w-4" />
@@ -142,11 +138,6 @@ export default function NovelDetail() {
 
           <TabsContent value="proposals" className="space-y-0">
             <ProposalsList novelId={novel.id} />
-          </TabsContent>
-
-
-          <TabsContent value="ranking" className="space-y-0">
-            <ContributorRanking novelId={novel.id} />
           </TabsContent>
 
           <TabsContent value="worldSetting" className="space-y-0">
