@@ -1,10 +1,30 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Users, Vote, Award, AlertCircle } from "lucide-react";
+import { BookOpen, Users, Vote, Award, AlertCircle, FileText, Edit3, TrendingUp, PenTool } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Landing() {
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // Fetch real stats data
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/weekly-stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/weekly-stats');
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    }
+  });
+
+  const defaultStats = {
+    totalNovels: 0,
+    totalCharacters: 0,
+    activeWriters: 0,
+    weeklyContributions: 0
+  };
+
+  const currentStats = statsData || defaultStats;
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -163,6 +183,56 @@ export default function Landing() {
                 <CardDescription>
                   기여도에 따라 다양한 칭호를 획득하고 작가로서의 성장을 확인하세요.
                 </CardDescription>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Platform Statistics */}
+      <section className="py-16 bg-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center text-slate-800 mb-12">
+            플랫폼 현황
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <FileText className="h-8 w-8 text-primary mx-auto mb-3" />
+                <div className="text-2xl font-bold text-slate-800" data-testid="text-total-novels">
+                  {statsLoading ? '...' : currentStats.totalNovels.toLocaleString()}
+                </div>
+                <p className="text-sm text-slate-600">총 소설 수</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <Edit3 className="h-8 w-8 text-primary mx-auto mb-3" />
+                <div className="text-2xl font-bold text-slate-800" data-testid="text-total-characters">
+                  {statsLoading ? '...' : currentStats.totalCharacters.toLocaleString()}
+                </div>
+                <p className="text-sm text-slate-600">총 작성 글자 수</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <PenTool className="h-8 w-8 text-primary mx-auto mb-3" />
+                <div className="text-2xl font-bold text-slate-800" data-testid="text-active-writers">
+                  {statsLoading ? '...' : currentStats.activeWriters.toLocaleString()}
+                </div>
+                <p className="text-sm text-slate-600">활성 작가 수</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="text-center">
+              <CardContent className="pt-6">
+                <TrendingUp className="h-8 w-8 text-primary mx-auto mb-3" />
+                <div className="text-2xl font-bold text-slate-800" data-testid="text-weekly-contributions">
+                  {statsLoading ? '...' : currentStats.weeklyContributions.toLocaleString()}
+                </div>
+                <p className="text-sm text-slate-600">주간 기여 횟수</p>
               </CardContent>
             </Card>
           </div>

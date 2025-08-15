@@ -135,6 +135,15 @@ export class DatabaseStorage implements IStorage {
     return novel;
   }
 
+  async incrementNovelViewCount(id: string): Promise<Novel | undefined> {
+    await db
+      .update(novels)
+      .set({ viewCount: sql`${novels.viewCount} + 1` })
+      .where(eq(novels.id, id));
+    
+    return this.getNovel(id);
+  }
+
   async createNovel(novel: InsertNovel): Promise<Novel> {
     const [newNovel] = await db.insert(novels).values(novel).returning();
     return newNovel;
@@ -679,6 +688,38 @@ export class DatabaseStorage implements IStorage {
     await db.delete(editProposals).where(eq(editProposals.id, proposalId));
     
     return true;
+  }
+
+  async getWeeklyStats(): Promise<any> {
+    // Calculate real statistics from database
+    const [totalNovelsResult] = await db.select({ count: sql<number>`count(*)` }).from(novels);
+    const totalNovels = totalNovelsResult.count;
+
+    const [totalCharactersResult] = await db.select({ 
+      total: sql<number>`coalesce(sum(length(${novels.content})), 0)` 
+    }).from(novels);
+    const totalCharacters = totalCharactersResult.total || 0;
+
+    const [activeWritersResult] = await db.select({ 
+      count: sql<number>`count(distinct ${editProposals.proposerId})` 
+    })
+    .from(editProposals)
+    .where(sql`${editProposals.createdAt} > now() - interval '30 days'`);
+    const activeWriters = activeWritersResult.count || 0;
+
+    const [weeklyContributionsResult] = await db.select({ 
+      count: sql<number>`count(*)` 
+    })
+    .from(editProposals)
+    .where(sql`${editProposals.createdAt} > now() - interval '7 days'`);
+    const weeklyContributions = weeklyContributionsResult.count || 0;
+
+    return {
+      totalNovels,
+      totalCharacters,
+      activeWriters,
+      weeklyContributions,
+    };
   }
 }
 

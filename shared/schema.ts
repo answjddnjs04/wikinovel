@@ -48,6 +48,7 @@ export const novels = pgTable("novels", {
   rules: text("rules"), // 소설 규칙
   currentEpisode: integer("current_episode").default(1),
   episodeThreshold: integer("episode_threshold").default(3000), // 화당 글자 수 기준
+  viewCount: integer("view_count").default(0), // 조회수
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

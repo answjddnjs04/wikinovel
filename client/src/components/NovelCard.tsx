@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Eye } from "lucide-react";
 import { Link } from "wouter";
 import type { Novel } from "@shared/schema";
 
@@ -60,6 +61,10 @@ export default function NovelCard({ novel }: NovelCardProps) {
                     (활성 {(novel as any).activeContributorCount}명)
                   </span>
                 )}
+              </span>
+              <span className="flex items-center space-x-1" data-testid="text-view-count">
+                <Eye className="h-4 w-4" />
+                <span>{(novel as any).viewCount || 0}</span>
               </span>
               <span data-testid="text-last-updated">
                 {novel.updatedAt ? formatTimeAgo(novel.updatedAt) : "방금 전"} 업데이트

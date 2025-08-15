@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { sql } from "drizzle-orm";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertNovelSchema, insertEditProposalSchema, insertProposalVoteSchema } from "@shared/schema";
+import { insertNovelSchema, insertEditProposalSchema, insertProposalVoteSchema, novels, editProposals } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -62,10 +63,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get weekly stats (real data)
+  app.get('/api/weekly-stats', async (req, res) => {
+    try {
+      // Get real statistics using storage methods
+      const stats = await storage.getWeeklyStats();
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching weekly stats:", error);
+      res.status(500).json({ message: "Failed to fetch weekly stats" });
+    }
+  });
+
   app.get('/api/novels/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      const novel = await storage.getNovel(id);
+      // Increment view count and get novel
+      const novel = await storage.incrementNovelViewCount(id);
       if (!novel) {
         return res.status(404).json({ message: "Novel not found" });
       }
