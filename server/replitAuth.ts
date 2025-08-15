@@ -99,6 +99,13 @@ export async function setupAuth(app: Express) {
 
   // Kakao OAuth Strategy
   if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
+    console.log('Setting up Kakao OAuth with:', {
+      clientID: process.env.KAKAO_CLIENT_ID,
+      callbackURL: process.env.REPLIT_DOMAINS 
+        ? `https://${process.env.REPLIT_DOMAINS.split(",")[0]}/api/auth/kakao/callback`
+        : "http://localhost:5000/api/auth/kakao/callback"
+    });
+    
     passport.use(new KakaoStrategy({
       clientID: process.env.KAKAO_CLIENT_ID,
       clientSecret: process.env.KAKAO_CLIENT_SECRET,
@@ -155,13 +162,21 @@ export async function setupAuth(app: Express) {
   });
 
   // Kakao OAuth routes
-  app.get("/api/auth/kakao", passport.authenticate("kakao"));
+  app.get("/api/auth/kakao", (req, res, next) => {
+    console.log('Kakao login request initiated');
+    passport.authenticate("kakao")(req, res, next);
+  });
 
   app.get("/api/auth/kakao/callback", 
+    (req, res, next) => {
+      console.log('Kakao callback received:', req.query);
+      next();
+    },
     passport.authenticate("kakao", { 
-      failureRedirect: "/landing" 
+      failureRedirect: "/landing?error=kakao_login_failed" 
     }),
     (req, res) => {
+      console.log('Kakao authentication successful');
       // Successful authentication, redirect to home
       res.redirect("/");
     }
