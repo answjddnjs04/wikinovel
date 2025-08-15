@@ -11,12 +11,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Camera } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
 const profileSchema = z.object({
-  firstName: z.string().min(1, "닉네임을 입력해주세요").max(50, "닉네임은 50자 이내로 입력해주세요"),
-  profileImageUrl: z.string().url("올바른 이미지 URL을 입력해주세요").optional().or(z.literal(""))
+  firstName: z.string().min(1, "닉네임을 입력해주세요").max(50, "닉네임은 50자 이내로 입력해주세요")
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -33,8 +32,7 @@ export default function Profile() {
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      firstName: "",
-      profileImageUrl: ""
+      firstName: ""
     }
   });
 
@@ -42,8 +40,7 @@ export default function Profile() {
   useEffect(() => {
     if (userProfile) {
       form.reset({
-        firstName: (userProfile as any)?.firstName || "",
-        profileImageUrl: (userProfile as any)?.profileImageUrl || ""
+        firstName: (userProfile as any)?.firstName || ""
       });
     }
   }, [userProfile, form]);
@@ -56,15 +53,16 @@ export default function Profile() {
         body: JSON.stringify(data)
       });
       if (!response.ok) {
-        throw new Error("프로필 업데이트에 실패했습니다");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "프로필 업데이트에 실패했습니다");
       }
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
-        title: "프로필 업데이트 완료",
-        description: "프로필이 성공적으로 업데이트되었습니다."
+        title: "닉네임 변경 완료",
+        description: "닉네임이 성공적으로 변경되었습니다."
       });
     },
     onError: (error) => {
@@ -124,7 +122,7 @@ export default function Profile() {
           <CardHeader>
             <CardTitle>내 프로필</CardTitle>
             <CardDescription>
-              닉네임과 프로필 사진을 변경할 수 있습니다.
+              닉네임을 변경할 수 있습니다. 프로필 사진은 카카오 계정의 이미지가 사용됩니다.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -135,35 +133,15 @@ export default function Profile() {
                   <div className="relative">
                     <Avatar className="h-24 w-24" data-testid="avatar-profile">
                       <AvatarImage 
-                        src={form.watch("profileImageUrl") || (userProfile as any)?.profileImageUrl} 
+                        src={(userProfile as any)?.profileImageUrl} 
                         alt="프로필 사진"
                       />
                       <AvatarFallback className="text-xl">
                         {(userProfile as any)?.firstName?.charAt(0) || "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <div className="absolute bottom-0 right-0 bg-slate-800 rounded-full p-2">
-                      <Camera className="h-4 w-4 text-white" />
-                    </div>
                   </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="profileImageUrl"
-                    render={({ field }) => (
-                      <FormItem className="w-full">
-                        <FormLabel>프로필 이미지 URL</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="https://example.com/image.jpg"
-                            {...field}
-                            data-testid="input-profile-image"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <p className="text-sm text-slate-600 text-center">카카오 계정 프로필 사진</p>
                 </div>
 
                 {/* Name Section */}
@@ -202,7 +180,7 @@ export default function Profile() {
                   disabled={updateProfile.isPending}
                   data-testid="button-save-profile"
                 >
-                  {updateProfile.isPending ? "저장 중..." : "프로필 저장"}
+                  {updateProfile.isPending ? "저장 중..." : "닉네임 저장"}
                 </Button>
               </form>
             </Form>

@@ -434,8 +434,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Update user profile
   app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const { firstName, profileImageUrl } = req.body;
+      const user = req.user as any;
+      const userId = user.sub || user.id;
+      const { firstName } = req.body;
+      
+      console.log('Profile update - User object:', user);
+      console.log('Profile update - UserId:', userId);
+      console.log('Profile update - Request body:', req.body);
       
       if (!firstName || firstName.trim().length === 0) {
         return res.status(400).json({ message: "닉네임은 필수입니다" });
@@ -446,8 +451,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedUser = await storage.updateUser(userId, {
-        firstName: firstName.trim(),
-        profileImageUrl: profileImageUrl?.trim() || null
+        firstName: firstName.trim()
       });
 
       res.json(updatedUser);
