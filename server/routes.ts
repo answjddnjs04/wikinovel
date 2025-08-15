@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertNovelSchema, insertBlockSchema, insertProposalSchema, insertVoteSchema } from "@shared/schema";
+import { insertNovelSchema, insertEditProposalSchema, insertProposalVoteSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -73,58 +73,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Block routes
-  app.get('/api/novels/:id/blocks', async (req, res) => {
+  // Novel content update routes
+  app.put('/api/novels/:id/content', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const blocks = await storage.getBlocksByNovel(id);
-      res.json(blocks);
-    } catch (error) {
-      console.error("Error fetching blocks:", error);
-      res.status(500).json({ message: "Failed to fetch blocks" });
-    }
-  });
-
-  app.post('/api/novels/:id/blocks', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
+      const { content } = req.body;
       const userId = req.user.claims.sub;
-      const blockData = insertBlockSchema.parse({
-        ...req.body,
-        novelId: id,
-      });
 
-      const block = await storage.createBlock(blockData);
+      const novel = await storage.updateNovelContent(id, content);
       
       // Add contribution record
-      const charCount = blockData.content.length;
-      await storage.addBlockContribution(block.id, userId, charCount);
+      const charCount = content.length;
+      await storage.addNovelContribution(id, userId, charCount, 'story');
 
-      res.status(201).json(block);
+      res.json(novel);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid block data", errors: error.errors });
-      }
-      console.error("Error creating block:", error);
-      res.status(500).json({ message: "Failed to create block" });
+      console.error("Error updating novel content:", error);
+      res.status(500).json({ message: "Failed to update novel content" });
     }
   });
 
-  // Proposal routes
-  app.get('/api/proposals', async (req, res) => {
-    try {
-      const proposals = await storage.getProposals();
-      res.json(proposals);
-    } catch (error) {
-      console.error("Error fetching proposals:", error);
-      res.status(500).json({ message: "Failed to fetch proposals" });
-    }
-  });
-
-  app.get('/api/blocks/:id/proposals', async (req, res) => {
+  app.put('/api/novels/:id/world-setting', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const proposals = await storage.getProposalsByBlock(id);
+      const { worldSetting } = req.body;
+      const userId = req.user.claims.sub;
+
+      const novel = await storage.updateNovelWorldSetting(id, worldSetting);
+      
+      // Add contribution record
+      const charCount = worldSetting.length;
+      await storage.addNovelContribution(id, userId, charCount, 'worldSetting');
+
+      res.json(novel);
+    } catch (error) {
+      console.error("Error updating world setting:", error);
+      res.status(500).json({ message: "Failed to update world setting" });
+    }
+  });
+
+  app.put('/api/novels/:id/rules', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { rules } = req.body;
+      const userId = req.user.claims.sub;
+
+      const novel = await storage.updateNovelRules(id, rules);
+      
+      // Add contribution record
+      const charCount = rules.length;
+      await storage.addNovelContribution(id, userId, charCount, 'rules');
+
+      res.json(novel);
+    } catch (error) {
+      console.error("Error updating rules:", error);
+      res.status(500).json({ message: "Failed to update rules" });
+    }
+  });
+
+  // Edit proposal routes
+  app.get('/api/novels/:id/proposals', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const proposals = await storage.getProposalsByNovel(id);
       res.json(proposals);
     } catch (error) {
       console.error("Error fetching proposals:", error);
@@ -135,13 +146,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const proposalData = insertProposalSchema.parse({
+      const proposalData = insertEditProposalSchema.parse({
         ...req.body,
         proposerId: userId,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
       });
 
-      const proposal = await storage.createProposal(proposalData);
+      const proposal = await storage.createEditProposal(proposalData);
       res.status(201).json(proposal);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -152,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Vote routes
+  // Proposal vote routes
   app.get('/api/proposals/:id/votes', async (req, res) => {
     try {
       const { id } = req.params;
@@ -164,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/votes', isAuthenticated, async (req: any, res) => {
+  app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const { proposalId, voteType } = req.body;
@@ -179,14 +190,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For now, use a simple weight calculation
       const weight = 100; // TODO: Calculate based on actual contributions
 
-      const voteData = insertVoteSchema.parse({
+      const voteData = insertProposalVoteSchema.parse({
         proposalId,
         userId,
         voteType,
         weight,
       });
 
-      const vote = await storage.createVote(voteData);
+      const vote = await storage.createProposalVote(voteData);
       res.status(201).json(vote);
     } catch (error) {
       if (error instanceof z.ZodError) {

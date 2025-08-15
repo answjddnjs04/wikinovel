@@ -43,27 +43,35 @@ export const novels = pgTable("novels", {
   title: varchar("title").notNull(),
   description: text("description"),
   genre: varchar("genre").notNull(),
+  content: text("content").default(""), // 전체 소설 내용
+  worldSetting: text("world_setting"), // 세계관 설정
+  rules: text("rules"), // 소설 규칙
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Blocks table for novel content
-export const blocks = pgTable("blocks", {
+// 소설 수정 제안 (전체 텍스트 기반)
+export const editProposals = pgTable("edit_proposals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   novelId: varchar("novel_id").references(() => novels.id).notNull(),
-  content: text("content").notNull(),
-  orderIndex: integer("order_index").notNull(),
-  version: integer("version").default(1),
+  proposerId: varchar("proposer_id").references(() => users.id).notNull(),
+  proposalType: varchar("proposal_type").notNull(), // 'addition', 'modification', 'worldSetting', 'rules'
+  originalText: text("original_text"), // 수정할 기존 텍스트 (추가의 경우 null)
+  proposedText: text("proposed_text").notNull(), // 제안하는 새 텍스트
+  insertPosition: integer("insert_position"), // 텍스트 삽입 위치 (추가의 경우)
+  reason: text("reason"),
+  status: varchar("status").default("pending"), // pending, approved, rejected
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
 });
 
-// Block contributions tracking
-export const blockContributions = pgTable("block_contributions", {
+// 소설 기여도 추적
+export const novelContributions = pgTable("novel_contributions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  blockId: varchar("block_id").references(() => blocks.id).notNull(),
+  novelId: varchar("novel_id").references(() => novels.id).notNull(),
   userId: varchar("user_id").references(() => users.id).notNull(),
   charCount: integer("char_count").notNull(),
+  contributionType: varchar("contribution_type").notNull(), // 'story', 'worldSetting', 'rules'
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -78,23 +86,10 @@ export const novelUserTitles = pgTable("novel_user_titles", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Proposals for block modifications
-export const proposals = pgTable("proposals", {
+// 제안에 대한 투표
+export const proposalVotes = pgTable("proposal_votes", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  blockId: varchar("block_id").references(() => blocks.id).notNull(),
-  proposerId: varchar("proposer_id").references(() => users.id).notNull(),
-  originalContent: text("original_content").notNull(),
-  proposedContent: text("proposed_content").notNull(),
-  reason: text("reason"),
-  status: varchar("status").default("pending"), // pending, approved, rejected
-  createdAt: timestamp("created_at").defaultNow(),
-  expiresAt: timestamp("expires_at").notNull(),
-});
-
-// Votes on proposals
-export const votes = pgTable("votes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  proposalId: varchar("proposal_id").references(() => proposals.id).notNull(),
+  proposalId: varchar("proposal_id").references(() => editProposals.id).notNull(),
   userId: varchar("user_id").references(() => users.id).notNull(),
   voteType: varchar("vote_type").notNull(), // approve, reject
   weight: integer("weight").notNull(),
@@ -103,54 +98,46 @@ export const votes = pgTable("votes", {
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
-  blockContributions: many(blockContributions),
-  proposals: many(proposals),
-  votes: many(votes),
+  novelContributions: many(novelContributions),
+  editProposals: many(editProposals),
+  proposalVotes: many(proposalVotes),
 }));
 
 export const novelsRelations = relations(novels, ({ many }) => ({
-  blocks: many(blocks),
+  contributions: many(novelContributions),
+  editProposals: many(editProposals),
 }));
 
-export const blocksRelations = relations(blocks, ({ one, many }) => ({
+export const novelContributionsRelations = relations(novelContributions, ({ one }) => ({
   novel: one(novels, {
-    fields: [blocks.novelId],
+    fields: [novelContributions.novelId],
     references: [novels.id],
   }),
-  contributions: many(blockContributions),
-  proposals: many(proposals),
-}));
-
-export const blockContributionsRelations = relations(blockContributions, ({ one }) => ({
-  block: one(blocks, {
-    fields: [blockContributions.blockId],
-    references: [blocks.id],
-  }),
   user: one(users, {
-    fields: [blockContributions.userId],
+    fields: [novelContributions.userId],
     references: [users.id],
   }),
 }));
 
-export const proposalsRelations = relations(proposals, ({ one, many }) => ({
-  block: one(blocks, {
-    fields: [proposals.blockId],
-    references: [blocks.id],
+export const editProposalsRelations = relations(editProposals, ({ one, many }) => ({
+  novel: one(novels, {
+    fields: [editProposals.novelId],
+    references: [novels.id],
   }),
   proposer: one(users, {
-    fields: [proposals.proposerId],
+    fields: [editProposals.proposerId],
     references: [users.id],
   }),
-  votes: many(votes),
+  votes: many(proposalVotes),
 }));
 
-export const votesRelations = relations(votes, ({ one }) => ({
-  proposal: one(proposals, {
-    fields: [votes.proposalId],
-    references: [proposals.id],
+export const proposalVotesRelations = relations(proposalVotes, ({ one }) => ({
+  proposal: one(editProposals, {
+    fields: [proposalVotes.proposalId],
+    references: [editProposals.id],
   }),
   user: one(users, {
-    fields: [votes.userId],
+    fields: [proposalVotes.userId],
     references: [users.id],
   }),
 }));
@@ -179,19 +166,18 @@ export const insertNovelSchema = createInsertSchema(novels).omit({
   updatedAt: true,
 });
 
-export const insertBlockSchema = createInsertSchema(blocks).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertProposalSchema = createInsertSchema(proposals).omit({
+export const insertEditProposalSchema = createInsertSchema(editProposals).omit({
   id: true,
   createdAt: true,
   status: true,
 });
 
-export const insertVoteSchema = createInsertSchema(votes).omit({
+export const insertProposalVoteSchema = createInsertSchema(proposalVotes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertNovelContributionSchema = createInsertSchema(novelContributions).omit({
   id: true,
   createdAt: true,
 });
@@ -206,12 +192,11 @@ export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type Novel = typeof novels.$inferSelect;
 export type InsertNovel = z.infer<typeof insertNovelSchema>;
-export type Block = typeof blocks.$inferSelect;
-export type InsertBlock = z.infer<typeof insertBlockSchema>;
-export type BlockContribution = typeof blockContributions.$inferSelect;
-export type Proposal = typeof proposals.$inferSelect;
-export type InsertProposal = z.infer<typeof insertProposalSchema>;
-export type Vote = typeof votes.$inferSelect;
-export type InsertVote = z.infer<typeof insertVoteSchema>;
+export type NovelContribution = typeof novelContributions.$inferSelect;
+export type InsertNovelContribution = z.infer<typeof insertNovelContributionSchema>;
+export type EditProposal = typeof editProposals.$inferSelect;
+export type InsertEditProposal = z.infer<typeof insertEditProposalSchema>;
+export type ProposalVote = typeof proposalVotes.$inferSelect;
+export type InsertProposalVote = z.infer<typeof insertProposalVoteSchema>;
 export type NovelUserTitle = typeof novelUserTitles.$inferSelect;
 export type InsertNovelUserTitle = z.infer<typeof insertNovelUserTitleSchema>;

@@ -1,22 +1,20 @@
 import {
   users,
   novels,
-  blocks,
-  blockContributions,
-  proposals,
-  votes,
+  novelContributions,
+  editProposals,
+  proposalVotes,
   novelUserTitles,
   type User,
   type UpsertUser,
   type Novel,
   type InsertNovel,
-  type Block,
-  type InsertBlock,
-  type BlockContribution,
-  type Proposal,
-  type InsertProposal,
-  type Vote,
-  type InsertVote,
+  type NovelContribution,
+  type InsertNovelContribution,
+  type EditProposal,
+  type InsertEditProposal,
+  type ProposalVote,
+  type InsertProposalVote,
   type NovelUserTitle,
   type InsertNovelUserTitle,
 } from "@shared/schema";
@@ -33,28 +31,24 @@ export interface IStorage {
   getNovelsByGenre(genre: string): Promise<Novel[]>;
   getNovel(id: string): Promise<Novel | undefined>;
   createNovel(novel: InsertNovel): Promise<Novel>;
+  updateNovelContent(id: string, content: string): Promise<Novel>;
+  updateNovelWorldSetting(id: string, worldSetting: string): Promise<Novel>;
+  updateNovelRules(id: string, rules: string): Promise<Novel>;
   getNovelCountsByGenre(): Promise<Record<string, number>>;
   
-  // Block operations
-  getBlocksByNovel(novelId: string): Promise<Block[]>;
-  getBlock(id: string): Promise<Block | undefined>;
-  createBlock(block: InsertBlock): Promise<Block>;
-  updateBlock(id: string, content: string): Promise<Block>;
-  
   // Contribution operations
-  addBlockContribution(blockId: string, userId: string, charCount: number): Promise<BlockContribution>;
+  addNovelContribution(novelId: string, userId: string, charCount: number, type: string): Promise<NovelContribution>;
   getUserContributionsByNovel(userId: string, novelId: string): Promise<number>;
   
   // Proposal operations
-  getProposals(): Promise<Proposal[]>;
-  getProposalsByBlock(blockId: string): Promise<Proposal[]>;
-  createProposal(proposal: InsertProposal): Promise<Proposal>;
-  updateProposalStatus(id: string, status: string): Promise<Proposal>;
+  getProposalsByNovel(novelId: string): Promise<EditProposal[]>;
+  createEditProposal(proposal: InsertEditProposal): Promise<EditProposal>;
+  updateProposalStatus(id: string, status: string): Promise<EditProposal>;
   
   // Vote operations
-  createVote(vote: InsertVote): Promise<Vote>;
-  getVotesByProposal(proposalId: string): Promise<Vote[]>;
-  getUserVote(proposalId: string, userId: string): Promise<Vote | undefined>;
+  createProposalVote(vote: InsertProposalVote): Promise<ProposalVote>;
+  getVotesByProposal(proposalId: string): Promise<ProposalVote[]>;
+  getUserVote(proposalId: string, userId: string): Promise<ProposalVote | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -102,6 +96,33 @@ export class DatabaseStorage implements IStorage {
     return newNovel;
   }
 
+  async updateNovelContent(id: string, content: string): Promise<Novel> {
+    const [updatedNovel] = await db
+      .update(novels)
+      .set({ content, updatedAt: new Date() })
+      .where(eq(novels.id, id))
+      .returning();
+    return updatedNovel;
+  }
+
+  async updateNovelWorldSetting(id: string, worldSetting: string): Promise<Novel> {
+    const [updatedNovel] = await db
+      .update(novels)
+      .set({ worldSetting, updatedAt: new Date() })
+      .where(eq(novels.id, id))
+      .returning();
+    return updatedNovel;
+  }
+
+  async updateNovelRules(id: string, rules: string): Promise<Novel> {
+    const [updatedNovel] = await db
+      .update(novels)
+      .set({ rules, updatedAt: new Date() })
+      .where(eq(novels.id, id))
+      .returning();
+    return updatedNovel;
+  }
+
   async getNovelCountsByGenre(): Promise<Record<string, number>> {
     const result = await db
       .select({
@@ -117,100 +138,67 @@ export class DatabaseStorage implements IStorage {
     }, {} as Record<string, number>);
   }
 
-  // Block operations
-  async getBlocksByNovel(novelId: string): Promise<Block[]> {
-    return await db
-      .select()
-      .from(blocks)
-      .where(eq(blocks.novelId, novelId))
-      .orderBy(blocks.orderIndex);
-  }
-
-  async getBlock(id: string): Promise<Block | undefined> {
-    const [block] = await db.select().from(blocks).where(eq(blocks.id, id));
-    return block;
-  }
-
-  async createBlock(block: InsertBlock): Promise<Block> {
-    const [newBlock] = await db.insert(blocks).values(block).returning();
-    return newBlock;
-  }
-
-  async updateBlock(id: string, content: string): Promise<Block> {
-    const [updatedBlock] = await db
-      .update(blocks)
-      .set({ content, updatedAt: new Date() })
-      .where(eq(blocks.id, id))
-      .returning();
-    return updatedBlock;
-  }
-
   // Contribution operations
-  async addBlockContribution(blockId: string, userId: string, charCount: number): Promise<BlockContribution> {
+  async addNovelContribution(novelId: string, userId: string, charCount: number, type: string): Promise<NovelContribution> {
     const [contribution] = await db
-      .insert(blockContributions)
-      .values({ blockId, userId, charCount })
+      .insert(novelContributions)
+      .values({ novelId, userId, charCount, contributionType: type })
       .returning();
     return contribution;
   }
 
   async getUserContributionsByNovel(userId: string, novelId: string): Promise<number> {
     const result = await db
-      .select({ total: sum(blockContributions.charCount) })
-      .from(blockContributions)
-      .innerJoin(blocks, eq(blockContributions.blockId, blocks.id))
+      .select({ total: sum(novelContributions.charCount) })
+      .from(novelContributions)
       .where(and(
-        eq(blockContributions.userId, userId),
-        eq(blocks.novelId, novelId)
+        eq(novelContributions.userId, userId),
+        eq(novelContributions.novelId, novelId)
       ));
     
     return Number(result[0]?.total || 0);
   }
 
   // Proposal operations
-  async getProposals(): Promise<Proposal[]> {
-    return await db.select().from(proposals).orderBy(desc(proposals.createdAt));
-  }
-
-  async getProposalsByBlock(blockId: string): Promise<Proposal[]> {
+  async getProposalsByNovel(novelId: string): Promise<EditProposal[]> {
     return await db
       .select()
-      .from(proposals)
-      .where(eq(proposals.blockId, blockId))
-      .orderBy(desc(proposals.createdAt));
+      .from(editProposals)
+      .where(eq(editProposals.novelId, novelId))
+      .orderBy(desc(editProposals.createdAt));
   }
 
-  async createProposal(proposal: InsertProposal): Promise<Proposal> {
-    const [newProposal] = await db.insert(proposals).values(proposal).returning();
+  async createEditProposal(proposal: InsertEditProposal): Promise<EditProposal> {
+    const [newProposal] = await db.insert(editProposals).values(proposal).returning();
     return newProposal;
   }
 
-  async updateProposalStatus(id: string, status: string): Promise<Proposal> {
+  async updateProposalStatus(id: string, status: string): Promise<EditProposal> {
     const [updatedProposal] = await db
-      .update(proposals)
+      .update(editProposals)
       .set({ status })
-      .where(eq(proposals.id, id))
+      .where(eq(editProposals.id, id))
       .returning();
     return updatedProposal;
   }
 
   // Vote operations
-  async createVote(vote: InsertVote): Promise<Vote> {
-    const [newVote] = await db.insert(votes).values(vote).returning();
+  async createProposalVote(vote: InsertProposalVote): Promise<ProposalVote> {
+    const [newVote] = await db.insert(proposalVotes).values(vote).returning();
     return newVote;
   }
 
-  async getVotesByProposal(proposalId: string): Promise<Vote[]> {
-    return await db.select().from(votes).where(eq(votes.proposalId, proposalId));
+  async getVotesByProposal(proposalId: string): Promise<ProposalVote[]> {
+    return await db.select().from(proposalVotes).where(eq(proposalVotes.proposalId, proposalId));
   }
 
-  async getUserVote(proposalId: string, userId: string): Promise<Vote | undefined> {
+  async getUserVote(proposalId: string, userId: string): Promise<ProposalVote | undefined> {
     const [vote] = await db
       .select()
-      .from(votes)
+      .from(proposalVotes)
       .where(and(
-        eq(votes.proposalId, proposalId),
-        eq(votes.userId, userId)
+        eq(proposalVotes.proposalId, proposalId),
+        eq(proposalVotes.userId, userId)
       ));
     return vote;
   }
