@@ -390,11 +390,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Comment routes
-  app.post('/api/proposal-comments', isAuthenticated, async (req: any, res) => {
-    try {
-      const { proposalId, content } = req.body;
-      // Handle different authentication providers (same as /api/auth/user)
-      let userId: string;
+  // Vote 라우트 추가
+app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
+  try {
+    // Handle different authentication providers (same as /api/auth/user)
+    let userId: string;
     
     if (req.user.provider === 'kakao') {
       userId = req.user.id;
@@ -402,9 +402,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       userId = req.user.claims.sub;
     }
     const { proposalId, voteType } = req.body;
-    // ... 나머지 코드 ...
+    // ... 나머지 vote 코드 ...
   } catch (error) {
-    // 에러 처리 코드
+    // vote 에러 처리
   }
 });
       console.error("Error creating comment:", error);
