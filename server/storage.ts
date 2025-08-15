@@ -218,6 +218,19 @@ export class DatabaseStorage implements IStorage {
     return newProposal;
   }
 
+  async deleteEditProposal(proposalId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(editProposals)
+      .where(and(
+        eq(editProposals.id, proposalId),
+        eq(editProposals.proposerId, userId),
+        eq(editProposals.status, 'pending')
+      ))
+      .returning();
+
+    return result.length > 0;
+  }
+
   async updateProposalStatus(id: string, status: string): Promise<EditProposal> {
     const [updatedProposal] = await db
       .update(editProposals)
@@ -411,8 +424,8 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: users.id,
         title: sql`coalesce(${users.firstName}, ${users.email}, '익명')`.as('user_name'),
-        value: sql`round((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100), 1)`.as('approval_rate'),
-        percentage: sql`round((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100), 1)`.as('approval_percentage')
+        value: sql`cast(round(cast((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100) as numeric), 1) as float)`.as('approval_rate'),
+        percentage: sql`cast(round(cast((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100) as numeric), 1) as float)`.as('approval_percentage')
       })
       .from(users)
       .leftJoin(editProposals, and(
@@ -421,7 +434,7 @@ export class DatabaseStorage implements IStorage {
       ))
       .groupBy(users.id, users.firstName, users.email)
       .having(sql`count(${editProposals.id}) >= 3`)
-      .orderBy(desc(sql`round((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100), 1)`))
+      .orderBy(desc(sql`cast(round(cast((sum(case when ${editProposals.status} = 'approved' then 1 else 0 end)::float / count(${editProposals.id}) * 100) as numeric), 1) as float)`))
       .limit(10);
 
     // Format results with rank

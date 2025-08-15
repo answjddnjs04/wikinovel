@@ -4,6 +4,7 @@ import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
 import NovelCard from "@/components/NovelCard";
 import CreateNovelModal from "@/components/CreateNovelModal";
+import SimpleWeeklyLeaderboard from "@/components/SimpleWeeklyLeaderboard";
 import { Button } from "@/components/ui/button";
 import { Plus, Trophy } from "lucide-react";
 import { Link } from "wouter";
@@ -45,7 +46,7 @@ export default function Home() {
             onGenreSelect={setSelectedGenre}
           />
           
-          <main className="flex-1">
+          <main className="flex-1 max-w-4xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-slate-800" data-testid="text-genre-title">
                 {selectedGenre} 소설
@@ -102,6 +103,13 @@ export default function Home() {
               </div>
             )}
           </main>
+
+          {/* Right Sidebar - Weekly Leaderboard */}
+          <aside className="w-full lg:w-80 flex-shrink-0">
+            <div className="sticky top-8">
+              <SimpleWeeklyLeaderboard />
+            </div>
+          </aside>
         </div>
       </div>
       

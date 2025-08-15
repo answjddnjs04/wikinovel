@@ -16,6 +16,7 @@ interface WebNovelReaderProps {
 
 export default function WebNovelReader({ novel }: WebNovelReaderProps) {
   const [isProposing, setIsProposing] = useState(false);
+  const [proposalTitle, setProposalTitle] = useState("");
   const [proposalContent, setProposalContent] = useState("");
   const [proposalReason, setProposalReason] = useState("");
   const { toast } = useToast();
@@ -37,6 +38,7 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
     mutationFn: async () => {
       return await apiRequest("POST", `/api/proposals`, {
         novelId: novel.id,
+        title: proposalTitle,
         proposalType: "modification",
         originalText: novel.content || "",
         proposedText: proposalContent,
@@ -46,6 +48,7 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/novels", novel.id, "proposals"] });
       setIsProposing(false);
+      setProposalTitle("");
       setProposalContent("");
       setProposalReason("");
       toast({
@@ -63,6 +66,15 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
   });
 
   const handleSubmitProposal = () => {
+    if (!proposalTitle.trim()) {
+      toast({
+        title: "제목을 입력해주세요",
+        description: "제안 제목을 작성해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!proposalContent.trim()) {
       toast({
         title: "내용을 입력해주세요",
@@ -74,7 +86,14 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
     createProposalMutation.mutate();
   };
 
+  const handleStartProposal = () => {
+    setProposalContent(novel.content || "");
+    setProposalTitle("");
+    setIsProposing(true);
+  };
+
   const handleCancel = () => {
+    setProposalTitle("");
     setProposalContent("");
     setProposalReason("");
     setIsProposing(false);
@@ -244,6 +263,21 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
             </div>
           </div>
 
+          {/* 제안 제목 */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              제안 제목
+            </label>
+            <input
+              type="text"
+              value={proposalTitle}
+              onChange={(e) => setProposalTitle(e.target.value)}
+              placeholder="제안 제목을 입력해주세요 (예: 캐릭터 대화 개선, 스토리 전개 수정)"
+              className="w-full p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              data-testid="input-proposal-title"
+            />
+          </div>
+
           {/* Split View Container */}
           <div className="grid grid-cols-2 gap-6 mb-6">
             {/* Left: Original Content */}
@@ -252,7 +286,7 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
               <div className="prose prose-slate max-w-none">
                 <CommentTextRenderer 
                   text={novel.content || "아직 작성된 내용이 없습니다."}
-                  className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap max-h-[500px] overflow-y-auto"
+                  className="text-slate-700 leading-relaxed text-base whitespace-pre-wrap max-h-[400px] overflow-y-auto"
                 />
               </div>
             </div>
@@ -264,7 +298,7 @@ export default function WebNovelReader({ novel }: WebNovelReaderProps) {
                 value={proposalContent}
                 onChange={(e) => setProposalContent(e.target.value)}
                 placeholder="수정할 내용을 작성해주세요..."
-                className="min-h-[450px] text-base leading-relaxed resize-none border-blue-200 focus:border-blue-400 bg-white"
+                className="min-h-[350px] text-base leading-relaxed resize-none border-blue-200 focus:border-blue-400 bg-white"
                 data-testid="textarea-proposal-content"
               />
             </div>
