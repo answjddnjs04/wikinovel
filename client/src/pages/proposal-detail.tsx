@@ -11,10 +11,15 @@ import { ko } from "date-fns/locale";
 export default function ProposalDetail() {
   const { novelId, proposalId } = useParams<{ novelId: string; proposalId: string }>();
 
-  const { data: proposal, isLoading: proposalLoading } = useQuery<EditProposal>({
+  const { data: proposal, isLoading: proposalLoading, error } = useQuery<EditProposal>({
     queryKey: ['/api/proposals', proposalId],
     enabled: !!proposalId
   });
+
+  console.log('Proposal data:', proposal);
+  console.log('Proposal loading:', proposalLoading);
+  console.log('Proposal error:', error);
+  console.log('Proposal ID:', proposalId);
 
   const { data: novel, isLoading: novelLoading } = useQuery({
     queryKey: ['/api/novels', novelId],

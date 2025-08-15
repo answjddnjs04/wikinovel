@@ -143,6 +143,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single proposal by ID
+  app.get('/api/proposals/:proposalId', async (req, res) => {
+    try {
+      const { proposalId } = req.params;
+      console.log('Fetching proposal with ID:', proposalId);
+      
+      const proposal = await storage.getProposalById(proposalId);
+      if (!proposal) {
+        console.log('Proposal not found:', proposalId);
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      
+      console.log('Found proposal:', proposal);
+      res.json(proposal);
+    } catch (error) {
+      console.error("Error fetching proposal:", error);
+      res.status(500).json({ message: "Failed to fetch proposal" });
+    }
+  });
+
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
       const { novelId, proposalType, originalText, proposedText, reason, title } = req.body;

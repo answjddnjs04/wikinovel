@@ -225,6 +225,39 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getProposalById(proposalId: string): Promise<any> {
+    console.log('Fetching proposal by ID:', proposalId);
+    
+    const proposalsWithDetails = await db
+      .select({
+        proposal: editProposals,
+        proposer: users,
+        approveCount: sql<number>`count(case when ${proposalVotes.voteType} = 'approve' then 1 end)`.as('approve_count'),
+        rejectCount: sql<number>`count(case when ${proposalVotes.voteType} = 'reject' then 1 end)`.as('reject_count')
+      })
+      .from(editProposals)
+      .leftJoin(users, eq(editProposals.proposerId, users.id))
+      .leftJoin(proposalVotes, eq(editProposals.id, proposalVotes.proposalId))
+      .where(eq(editProposals.id, proposalId))
+      .groupBy(editProposals.id, users.id);
+
+    if (proposalsWithDetails.length === 0) {
+      console.log('No proposal found with ID:', proposalId);
+      return null;
+    }
+
+    const result = proposalsWithDetails[0];
+    const flattenedProposal = {
+      ...result.proposal,
+      proposer: result.proposer,
+      approveCount: result.approveCount,
+      rejectCount: result.rejectCount
+    };
+
+    console.log('Found proposal:', flattenedProposal);
+    return flattenedProposal;
+  }
+
   async deleteEditProposal(proposalId: string, userId: string): Promise<boolean> {
     const result = await db
       .delete(editProposals)
