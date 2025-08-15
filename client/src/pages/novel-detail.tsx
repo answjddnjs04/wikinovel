@@ -53,15 +53,16 @@ export default function NovelDetail() {
             </Button>
           </Link>
           
-          <Button 
-            variant="outline" 
-            className="text-slate-600 hover:text-slate-800" 
-            data-testid="button-proposals"
-            onClick={() => setActiveTab("proposals")}
-          >
-            <List className="h-4 w-4 mr-2" />
-            제안 목록
-          </Button>
+          <Link href={`/novels/${novel.id}/proposals`}>
+            <Button 
+              variant="outline" 
+              className="text-slate-600 hover:text-slate-800" 
+              data-testid="button-proposals"
+            >
+              <List className="h-4 w-4 mr-2" />
+              제안 목록
+            </Button>
+          </Link>
         </div>
 
         {/* Novel Header */}
@@ -88,7 +89,7 @@ export default function NovelDetail() {
 
         {/* Main Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-white rounded-lg shadow-sm border border-slate-200">
+          <TabsList className="grid w-full grid-cols-5 bg-white rounded-lg shadow-sm border border-slate-200">
             <TabsTrigger value="episodes" className="flex items-center space-x-2" data-testid="tab-episodes">
               <BookOpen className="h-4 w-4" />
               <span>읽기</span>
@@ -108,10 +109,6 @@ export default function NovelDetail() {
             <TabsTrigger value="rules" className="flex items-center space-x-2" data-testid="tab-rules">
               <Settings className="h-4 w-4" />
               <span>규칙</span>
-            </TabsTrigger>
-            <TabsTrigger value="proposals" className="flex items-center space-x-2" data-testid="tab-proposals">
-              <MessageSquare className="h-4 w-4" />
-              <span>제안</span>
             </TabsTrigger>
           </TabsList>
 
@@ -165,9 +162,7 @@ export default function NovelDetail() {
             />
           </TabsContent>
 
-          <TabsContent value="proposals" className="space-y-0">
-            <ProposalsList novelId={novel.id} />
-          </TabsContent>
+
         </Tabs>
       </div>
     </div>

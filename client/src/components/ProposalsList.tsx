@@ -131,8 +131,9 @@ export default function ProposalsList({ novelId }: ProposalsListProps) {
           filteredProposals.map((proposal: Proposal) => (
             <Card 
               key={proposal.id}
-              className="p-4 hover:shadow-md transition-shadow"
+              className="p-4 hover:shadow-md transition-shadow cursor-pointer"
               data-testid={`proposal-card-${proposal.id}`}
+              onClick={() => window.location.href = `/novels/${novelId}/proposals/${proposal.id}`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
@@ -195,14 +196,7 @@ export default function ProposalsList({ novelId }: ProposalsListProps) {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <div className="flex justify-end">
-                <Link href={`/novels/${novelId}/proposals/${proposal.id}`}>
-                  <Button variant="outline" size="sm" data-testid={`button-view-${proposal.id}`}>
-                    자세히 보기
-                  </Button>
-                </Link>
-              </div>
+
             </Card>
           ))
         )}
