@@ -15,17 +15,23 @@ import WeeklyLeaderboardPage from "@/pages/weekly-leaderboard";
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  console.log('Router - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
+  console.log('Current path:', window.location.pathname);
+
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/" component={Landing} />
+          <Route component={Landing} />
+        </>
       ) : (
         <>
           <Route path="/" component={Home} />
           <Route path="/leaderboard" component={WeeklyLeaderboardPage} />
           <Route path="/novels/:id" component={NovelDetail} />
           <Route path="/novels/:id/proposals" component={NovelProposals} />
-          <Route path="/novels/:id/proposals/:proposalId" component={ProposalDetail} />
+          <Route path="/novels/:novelId/proposals/:proposalId" component={ProposalDetail} />
         </>
       )}
       <Route component={NotFound} />

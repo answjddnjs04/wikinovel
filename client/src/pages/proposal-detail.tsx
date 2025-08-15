@@ -4,17 +4,28 @@ import type { EditProposal } from "@shared/schema";
 import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Eye, ThumbsUp, ThumbsDown, Clock, User } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Eye, ThumbsUp, ThumbsDown, Clock, User, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
 export default function ProposalDetail() {
   const { novelId, proposalId } = useParams<{ novelId: string; proposalId: string }>();
+  const [commentContent, setCommentContent] = useState("");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: proposal, isLoading: proposalLoading, error } = useQuery<EditProposal>({
     queryKey: ['/api/proposals', proposalId],
     enabled: !!proposalId
   });
+
+  console.log('Router path params check:', { novelId, proposalId });
+  console.log('URL check:', window.location.pathname);
 
   // Extract novelId from proposal data if not available in params
   const actualNovelId = novelId || (proposal as any)?.novelId;
@@ -25,6 +36,30 @@ export default function ProposalDetail() {
   console.log('Proposal ID:', proposalId);
   console.log('Novel ID from params:', novelId);
   console.log('Actual Novel ID:', actualNovelId);
+
+  // Voting mutations
+  const voteMutation = useMutation({
+    mutationFn: async ({ voteType }: { voteType: "approve" | "reject" }) => {
+      return await apiRequest("POST", "/api/proposal-votes", { 
+        proposalId, 
+        voteType 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/proposals', proposalId] });
+      toast({
+        title: "투표 완료",
+        description: "투표가 성공적으로 등록되었습니다.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "투표 실패",
+        description: "투표 등록 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const { data: novel, isLoading: novelLoading } = useQuery({
     queryKey: ['/api/novels', actualNovelId],
@@ -170,36 +205,65 @@ export default function ProposalDetail() {
         )}
 
         {/* Voting Section */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold text-slate-800 mb-6">투표</h2>
+        <Card className="p-6 mb-8">
+          <h2 className="text-xl font-semibold text-slate-800 mb-6">투표 현황</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center space-x-2">
-                <ThumbsUp className="h-5 w-5 text-green-600" />
-                <span className="font-medium text-green-800">찬성</span>
-              </div>
-              <span className="text-2xl font-bold text-green-600">
-                {(proposal as any).approveCount || 0}
-              </span>
-            </div>
+          {(() => {
+            const approveCount = parseInt((proposal as any).approveCount || 0);
+            const rejectCount = parseInt((proposal as any).rejectCount || 0);
+            const totalVotes = approveCount + rejectCount;
+            const approveRate = totalVotes > 0 ? ((approveCount / totalVotes) * 100).toFixed(1) : 0;
+            const rejectRate = totalVotes > 0 ? ((rejectCount / totalVotes) * 100).toFixed(1) : 0;
             
-            <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
-              <div className="flex items-center space-x-2">
-                <ThumbsDown className="h-5 w-5 text-red-600" />
-                <span className="font-medium text-red-800">반대</span>
-              </div>
-              <span className="text-2xl font-bold text-red-600">
-                {(proposal as any).rejectCount || 0}
-              </span>
-            </div>
-          </div>
+            return (
+              <>
+                {/* Vote Statistics */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-lg font-medium text-slate-700">전체 투표수: {totalVotes}표</span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <ThumbsUp className="h-5 w-5 text-green-600" />
+                        <span className="font-medium text-green-800">찬성 {approveCount}표</span>
+                      </div>
+                      <span className="text-lg font-bold text-green-600">{approveRate}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${approveRate}%` }}
+                      ></div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <ThumbsDown className="h-5 w-5 text-red-600" />
+                        <span className="font-medium text-red-800">반대 {rejectCount}표</span>
+                      </div>
+                      <span className="text-lg font-bold text-red-600">{rejectRate}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-red-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${rejectRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           {(proposal as any).status === 'pending' && (
             <div className="flex space-x-4">
               <Button 
                 className="flex-1 bg-green-600 hover:bg-green-700"
                 data-testid="button-approve"
+                onClick={() => voteMutation.mutate({ voteType: "approve" })}
+                disabled={voteMutation.isPending}
               >
                 <ThumbsUp className="h-4 w-4 mr-2" />
                 찬성
@@ -208,6 +272,8 @@ export default function ProposalDetail() {
                 variant="destructive" 
                 className="flex-1"
                 data-testid="button-reject"
+                onClick={() => voteMutation.mutate({ voteType: "reject" })}
+                disabled={voteMutation.isPending}
               >
                 <ThumbsDown className="h-4 w-4 mr-2" />
                 반대
@@ -220,6 +286,46 @@ export default function ProposalDetail() {
               투표가 종료되었습니다.
             </div>
           )}
+        </Card>
+
+        {/* Comments Section */}
+        <Card className="p-6">
+          <h2 className="text-xl font-semibold text-slate-800 mb-6">댓글</h2>
+          
+          {/* Comment Form */}
+          <div className="mb-6">
+            <Textarea
+              placeholder="댓글을 작성해주세요..."
+              value={commentContent}
+              onChange={(e) => setCommentContent(e.target.value)}
+              className="mb-3"
+              rows={3}
+              data-testid="textarea-comment"
+            />
+            <Button
+              onClick={() => {
+                // TODO: Implement comment submission
+                toast({
+                  title: "댓글 기능",
+                  description: "댓글 기능이 곧 추가될 예정입니다.",
+                });
+              }}
+              disabled={!commentContent.trim()}
+              className="bg-blue-600 hover:bg-blue-700"
+              data-testid="button-submit-comment"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              댓글 작성
+            </Button>
+          </div>
+
+          {/* Comments List */}
+          <div className="space-y-4">
+            <div className="text-center py-8 text-slate-500">
+              <p>아직 댓글이 없습니다.</p>
+              <p className="text-sm">첫 번째 댓글을 작성해보세요!</p>
+            </div>
+          </div>
         </Card>
       </div>
     </div>
