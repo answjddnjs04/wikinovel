@@ -143,6 +143,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's proposals
+  app.get('/api/my-proposals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const proposals = await storage.getUserProposals(userId);
+      res.json(proposals);
+    } catch (error) {
+      console.error('Error fetching user proposals:', error);
+      res.status(500).json({ message: 'Failed to fetch user proposals' });
+    }
+  });
+
   // Get single proposal by ID
   app.get('/api/proposals/:proposalId', async (req, res) => {
     try {

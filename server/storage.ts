@@ -24,7 +24,7 @@ import {
   type InsertNovelUserTitle,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sum, count, sql, gte } from "drizzle-orm";
+import { eq, desc, and, sum, count, sql, gte, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -595,6 +595,46 @@ export class DatabaseStorage implements IStorage {
           ne(editProposals.id, approvedProposalId)
         )
       );
+  }
+
+  // Get user's proposals with novel information
+  async getUserProposals(userId: string): Promise<any[]> {
+    const proposals = await db
+      .select({
+        id: editProposals.id,
+        title: editProposals.title,
+        proposalType: editProposals.proposalType,
+        status: editProposals.status,
+        reason: editProposals.reason,
+        createdAt: editProposals.createdAt,
+        expiresAt: editProposals.expiresAt,
+        novelId: editProposals.novelId,
+        novelTitle: novels.title,
+        approveCount: sql`count(case when ${proposalVotes.voteType} = 'approve' then 1 end)`.as('approveCount'),
+        rejectCount: sql`count(case when ${proposalVotes.voteType} = 'reject' then 1 end)`.as('rejectCount')
+      })
+      .from(editProposals)
+      .leftJoin(novels, eq(editProposals.novelId, novels.id))
+      .leftJoin(proposalVotes, eq(proposalVotes.proposalId, editProposals.id))
+      .where(eq(editProposals.proposerId, userId))
+      .groupBy(
+        editProposals.id,
+        editProposals.title,
+        editProposals.proposalType,
+        editProposals.status,
+        editProposals.reason,
+        editProposals.createdAt,
+        editProposals.expiresAt,
+        editProposals.novelId,
+        novels.title
+      )
+      .orderBy(desc(editProposals.createdAt));
+
+    return proposals.map(proposal => ({
+      ...proposal,
+      approveCount: Number(proposal.approveCount),
+      rejectCount: Number(proposal.rejectCount)
+    }));
   }
 }
 
