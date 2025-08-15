@@ -19,25 +19,7 @@ export default function ProposalDetail() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: proposal, isLoading: proposalLoading, error } = useQuery<EditProposal>({
-    queryKey: ['/api/proposals', proposalId],
-    enabled: !!proposalId
-  });
-
-  console.log('Router path params check:', { novelId, proposalId });
-  console.log('URL check:', window.location.pathname);
-
-  // Extract novelId from proposal data if not available in params
-  const actualNovelId = novelId || (proposal as any)?.novelId;
-
-  console.log('Proposal data:', proposal);
-  console.log('Proposal loading:', proposalLoading);
-  console.log('Proposal error:', error);
-  console.log('Proposal ID:', proposalId);
-  console.log('Novel ID from params:', novelId);
-  console.log('Actual Novel ID:', actualNovelId);
-
-  // Voting mutations
+  // Voting mutations - must be declared at top level
   const voteMutation = useMutation({
     mutationFn: async ({ voteType }: { voteType: "approve" | "reject" }) => {
       return await apiRequest("POST", "/api/proposal-votes", { 
@@ -60,6 +42,24 @@ export default function ProposalDetail() {
       });
     },
   });
+
+  const { data: proposal, isLoading: proposalLoading, error } = useQuery<EditProposal>({
+    queryKey: ['/api/proposals', proposalId],
+    enabled: !!proposalId
+  });
+
+  console.log('Router path params check:', { novelId, proposalId });
+  console.log('URL check:', window.location.pathname);
+
+  // Extract novelId from proposal data if not available in params
+  const actualNovelId = novelId || (proposal as any)?.novelId;
+
+  console.log('Proposal data:', proposal);
+  console.log('Proposal loading:', proposalLoading);
+  console.log('Proposal error:', error);
+  console.log('Proposal ID:', proposalId);
+  console.log('Novel ID from params:', novelId);
+  console.log('Actual Novel ID:', actualNovelId);
 
   const { data: novel, isLoading: novelLoading } = useQuery({
     queryKey: ['/api/novels', actualNovelId],
