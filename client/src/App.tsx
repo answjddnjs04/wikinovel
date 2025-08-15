@@ -8,7 +8,8 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import NovelDetail from "@/pages/novel-detail";
-import NovelProposals from "@/pages/novel-proposals";
+import NovelProposals from "@/pages/novel-proposals-simple";
+import ProposalDetail from "@/pages/proposal-detail";
 import WeeklyLeaderboardPage from "@/pages/weekly-leaderboard";
 
 function Router() {
@@ -24,7 +25,7 @@ function Router() {
           <Route path="/leaderboard" component={WeeklyLeaderboardPage} />
           <Route path="/novels/:id" component={NovelDetail} />
           <Route path="/novels/:id/proposals" component={NovelProposals} />
-          <Route path="/novels/:id/proposals/:proposalId" component={NovelProposals} />
+          <Route path="/novels/:id/proposals/:proposalId" component={ProposalDetail} />
         </>
       )}
       <Route component={NotFound} />
