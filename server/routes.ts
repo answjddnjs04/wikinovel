@@ -182,7 +182,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         proposedText,
         reason,
         title: title || proposedText.substring(0, 50) + (proposedText.length > 50 ? '...' : ''),
-        status: 'pending',
         views: 0,
         expiresAt
       });
@@ -206,11 +205,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User has already voted on this proposal" });
       }
 
+      // Calculate vote weight based on user contributions to the novel
+      const proposal = await storage.getProposal(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      
+      const userContributions = await storage.getUserContributionsByNovel(userId, proposal.novelId);
+      const weight = Math.max(1, Math.floor(userContributions / 100)); // 1 weight per 100 characters contributed, minimum 1
+
       const vote = await storage.createProposalVote({
         proposalId,
         userId,
         voteType,
-        weight: 1 // TODO: Calculate based on user contributions
+        weight
       });
 
       res.status(201).json(vote);
@@ -236,6 +244,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating comment:", error);
       res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  app.get('/api/proposals/:id/comments', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const comments = await storage.getCommentsByProposal(id);
+      res.json(comments);
+    } catch (error) {
+      console.error("Error fetching comments:", error);
+      res.status(500).json({ message: "Failed to fetch comments" });
     }
   });
 

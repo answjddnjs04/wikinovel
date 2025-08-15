@@ -6,6 +6,15 @@ This is a wiki-style collaborative novel platform where multiple users can contr
 
 Preferred communication style: Simple, everyday language.
 
+# Recent Changes (2025-08-15)
+
+## Implemented Features
+- **댓글 시스템**: 제안 상세 페이지에 완전한 댓글 작성/조회 기능 구현
+- **가중 투표 시스템**: 사용자 기여도(100글자당 1가중치)에 따른 투표 권한 차등 적용
+- **홈 페이지 직접 접근**: 인증된 사용자는 랜딩 페이지를 건너뛰고 바로 홈으로 이동
+- **투표 비율 시각화**: 개표 수 대신 가중치 기반 비율로 투표 현황 표시
+- **자동 제안 승인**: 만료 시간 도달 시 가중치 기반 과반수 승인으로 자동 적용
+
 # System Architecture
 
 ## Frontend Architecture

@@ -43,6 +43,31 @@ export default function ProposalDetail() {
     },
   });
 
+  // Comment mutation
+  const commentMutation = useMutation({
+    mutationFn: async ({ content }: { content: string }) => {
+      return await apiRequest("POST", "/api/proposal-comments", { 
+        proposalId, 
+        content 
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/proposals', proposalId, 'comments'] });
+      setCommentContent("");
+      toast({
+        title: "댓글 작성 완료",
+        description: "댓글이 성공적으로 작성되었습니다.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "댓글 작성 실패",
+        description: "댓글 작성 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const { data: proposal, isLoading: proposalLoading, error } = useQuery<EditProposal>({
     queryKey: ['/api/proposals', proposalId],
     enabled: !!proposalId
@@ -64,6 +89,11 @@ export default function ProposalDetail() {
   const { data: novel, isLoading: novelLoading } = useQuery({
     queryKey: ['/api/novels', actualNovelId],
     enabled: !!actualNovelId
+  });
+
+  const { data: comments, isLoading: commentsLoading } = useQuery({
+    queryKey: ['/api/proposals', proposalId, 'comments'],
+    enabled: !!proposalId
   });
 
   if (proposalLoading || novelLoading) {
@@ -145,7 +175,7 @@ export default function ProposalDetail() {
           <div className="flex items-center space-x-6 text-sm text-slate-600">
             <div className="flex items-center space-x-1">
               <User className="h-4 w-4" />
-              <span>제안자: {(proposal as any).proposer?.username || '익명'}</span>
+              <span>제안자: {(proposal as any).proposer?.username || (proposal as any).proposer?.firstName || '익명'}</span>
             </div>
             <div className="flex items-center space-x-1">
               <Eye className="h-4 w-4" />
@@ -209,25 +239,25 @@ export default function ProposalDetail() {
           <h2 className="text-xl font-semibold text-slate-800 mb-6">투표 현황</h2>
           
           {(() => {
-            const approveCount = parseInt((proposal as any).approveCount || 0);
-            const rejectCount = parseInt((proposal as any).rejectCount || 0);
-            const totalVotes = approveCount + rejectCount;
-            const approveRate = totalVotes > 0 ? ((approveCount / totalVotes) * 100).toFixed(1) : 0;
-            const rejectRate = totalVotes > 0 ? ((rejectCount / totalVotes) * 100).toFixed(1) : 0;
+            const approveWeight = parseInt((proposal as any).approveCount || 0);
+            const rejectWeight = parseInt((proposal as any).rejectCount || 0);
+            const totalWeight = approveWeight + rejectWeight;
+            const approveRate = totalWeight > 0 ? ((approveWeight / totalWeight) * 100).toFixed(1) : 0;
+            const rejectRate = totalWeight > 0 ? ((rejectWeight / totalWeight) * 100).toFixed(1) : 0;
             
             return (
               <>
                 {/* Vote Statistics */}
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-lg font-medium text-slate-700">전체 투표수: {totalVotes}표</span>
+                    <span className="text-lg font-medium text-slate-700">전체 투표 가중치: {totalWeight}</span>
                   </div>
                   
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <ThumbsUp className="h-5 w-5 text-green-600" />
-                        <span className="font-medium text-green-800">찬성 {approveCount}표</span>
+                        <span className="font-medium text-green-800">찬성 {approveWeight}</span>
                       </div>
                       <span className="text-lg font-bold text-green-600">{approveRate}%</span>
                     </div>
@@ -241,7 +271,7 @@ export default function ProposalDetail() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2">
                         <ThumbsDown className="h-5 w-5 text-red-600" />
-                        <span className="font-medium text-red-800">반대 {rejectCount}표</span>
+                        <span className="font-medium text-red-800">반대 {rejectWeight}</span>
                       </div>
                       <span className="text-lg font-bold text-red-600">{rejectRate}%</span>
                     </div>
@@ -304,27 +334,65 @@ export default function ProposalDetail() {
             />
             <Button
               onClick={() => {
-                // TODO: Implement comment submission
-                toast({
-                  title: "댓글 기능",
-                  description: "댓글 기능이 곧 추가될 예정입니다.",
-                });
+                if (commentContent.trim()) {
+                  commentMutation.mutate({ content: commentContent.trim() });
+                }
               }}
-              disabled={!commentContent.trim()}
+              disabled={!commentContent.trim() || commentMutation.isPending}
               className="bg-blue-600 hover:bg-blue-700"
               data-testid="button-submit-comment"
             >
               <Send className="h-4 w-4 mr-2" />
-              댓글 작성
+              {commentMutation.isPending ? "작성 중..." : "댓글 작성"}
             </Button>
           </div>
 
           {/* Comments List */}
           <div className="space-y-4">
-            <div className="text-center py-8 text-slate-500">
-              <p>아직 댓글이 없습니다.</p>
-              <p className="text-sm">첫 번째 댓글을 작성해보세요!</p>
-            </div>
+            {commentsLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="flex space-x-3">
+                      <div className="w-8 h-8 bg-slate-200 rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+                        <div className="h-4 bg-slate-200 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : comments && Array.isArray(comments) && comments.length > 0 ? (
+              comments.map((comment: any) => (
+                <div key={comment.id} className="border-b border-slate-200 pb-4 last:border-b-0">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center">
+                      <User className="h-4 w-4 text-slate-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="font-medium text-slate-800">
+                          {comment.user?.firstName || comment.user?.email || '익명'}
+                        </span>
+                        <span className="text-sm text-slate-500">
+                          {formatDistanceToNow(new Date(comment.createdAt), { 
+                            addSuffix: true, 
+                            locale: ko 
+                          })}
+                        </span>
+                      </div>
+                      <p className="text-slate-700 whitespace-pre-wrap">{comment.content}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <p>아직 댓글이 없습니다.</p>
+                <p className="text-sm">첫 번째 댓글을 작성해보세요!</p>
+              </div>
+            )}
           </div>
         </Card>
       </div>

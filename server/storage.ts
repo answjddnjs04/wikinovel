@@ -54,6 +54,13 @@ export interface IStorage {
   createProposalVote(vote: InsertProposalVote): Promise<ProposalVote>;
   getVotesByProposal(proposalId: string): Promise<ProposalVote[]>;
   getUserVote(proposalId: string, userId: string): Promise<ProposalVote | undefined>;
+  
+  // Additional proposal operations
+  getProposal(id: string): Promise<EditProposal | undefined>;
+  
+  // Comment operations
+  createProposalComment(comment: InsertProposalComment): Promise<ProposalComment>;
+  getCommentsByProposal(proposalId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -184,8 +191,8 @@ export class DatabaseStorage implements IStorage {
       .select({
         proposal: editProposals,
         proposer: users,
-        approveCount: sql<number>`count(case when ${proposalVotes.voteType} = 'approve' then 1 end)`.as('approve_count'),
-        rejectCount: sql<number>`count(case when ${proposalVotes.voteType} = 'reject' then 1 end)`.as('reject_count')
+        approveCount: sql<number>`sum(case when ${proposalVotes.voteType} = 'approve' then ${proposalVotes.weight} else 0 end)`.as('approve_count'),
+        rejectCount: sql<number>`sum(case when ${proposalVotes.voteType} = 'reject' then ${proposalVotes.weight} else 0 end)`.as('reject_count')
       })
       .from(editProposals)
       .leftJoin(users, eq(editProposals.proposerId, users.id))
@@ -232,8 +239,8 @@ export class DatabaseStorage implements IStorage {
       .select({
         proposal: editProposals,
         proposer: users,
-        approveCount: sql<number>`count(case when ${proposalVotes.voteType} = 'approve' then 1 end)`.as('approve_count'),
-        rejectCount: sql<number>`count(case when ${proposalVotes.voteType} = 'reject' then 1 end)`.as('reject_count')
+        approveCount: sql<number>`sum(case when ${proposalVotes.voteType} = 'approve' then ${proposalVotes.weight} else 0 end)`.as('approve_count'),
+        rejectCount: sql<number>`sum(case when ${proposalVotes.voteType} = 'reject' then ${proposalVotes.weight} else 0 end)`.as('reject_count')
       })
       .from(editProposals)
       .leftJoin(users, eq(editProposals.proposerId, users.id))
@@ -301,18 +308,32 @@ export class DatabaseStorage implements IStorage {
     return vote;
   }
 
+  async getProposal(id: string): Promise<EditProposal | undefined> {
+    const [proposal] = await db.select().from(editProposals).where(eq(editProposals.id, id));
+    return proposal;
+  }
+
   // Comment operations
   async createProposalComment(comment: InsertProposalComment): Promise<ProposalComment> {
     const [newComment] = await db.insert(proposalComments).values(comment).returning();
     return newComment;
   }
 
-  async getCommentsByProposal(proposalId: string): Promise<ProposalComment[]> {
-    return await db
-      .select()
+  async getCommentsByProposal(proposalId: string): Promise<any[]> {
+    const commentsWithUsers = await db
+      .select({
+        comment: proposalComments,
+        user: users
+      })
       .from(proposalComments)
+      .leftJoin(users, eq(proposalComments.userId, users.id))
       .where(eq(proposalComments.proposalId, proposalId))
       .orderBy(proposalComments.createdAt);
+
+    return commentsWithUsers.map(item => ({
+      ...item.comment,
+      user: item.user
+    }));
   }
 
   // Contributor ranking operations
@@ -379,11 +400,11 @@ export class DatabaseStorage implements IStorage {
 
     for (const proposal of expiredProposals) {
       const votes = await this.getVotesByProposal(proposal.id);
-      const totalVotes = votes.length;
-      const approveVotes = votes.filter(v => v.voteType === 'approve').length;
+      const totalWeight = votes.reduce((sum, vote) => sum + (vote.weight || 1), 0);
+      const approveWeight = votes.filter(v => v.voteType === 'approve').reduce((sum, vote) => sum + (vote.weight || 1), 0);
       
-      if (totalVotes > 0) {
-        const approvalRate = approveVotes / totalVotes;
+      if (totalWeight > 0) {
+        const approvalRate = approveWeight / totalWeight;
         
         if (approvalRate >= 0.5) {
           // Apply the proposal

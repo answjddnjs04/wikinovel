@@ -18,9 +18,27 @@ function Router() {
   console.log('Router - isAuthenticated:', isAuthenticated, 'isLoading:', isLoading);
   console.log('Current path:', window.location.pathname);
 
+  // Skip landing page if user is authenticated and on root path
+  if (isAuthenticated && window.location.pathname === '/') {
+    return (
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/leaderboard" component={WeeklyLeaderboardPage} />
+        <Route path="/novels/:id" component={NovelDetail} />
+        <Route path="/novels/:id/proposals" component={NovelProposals} />
+        <Route path="/novels/:novelId/proposals/:proposalId" component={ProposalDetail} />
+        <Route component={NotFound} />
+      </Switch>
+    );
+  }
+
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
+      {isLoading ? (
+        <Route component={() => <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-slate-600"></div>
+        </div>} />
+      ) : !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
           <Route component={Landing} />
