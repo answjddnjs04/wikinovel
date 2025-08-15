@@ -32,6 +32,7 @@ export default function NovelProposals() {
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       case 'expired': return 'bg-gray-100 text-gray-800';
+      case 'needs_review': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -42,6 +43,7 @@ export default function NovelProposals() {
       case 'approved': return '✅ 승인됨';
       case 'rejected': return '❌ 거부됨';
       case 'expired': return '⏰ 만료됨';
+      case 'needs_review': return '🔄 재검토 요청';
       default: return status;
     }
   };

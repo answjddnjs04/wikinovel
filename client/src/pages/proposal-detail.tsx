@@ -5,17 +5,23 @@ import Header from "@/components/Header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Eye, ThumbsUp, ThumbsDown, Clock, User, Send } from "lucide-react";
+import { ArrowLeft, Eye, ThumbsUp, ThumbsDown, Clock, User, Send, Edit3, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ko } from "date-fns/locale";
 
 export default function ProposalDetail() {
   const { novelId, proposalId } = useParams<{ novelId: string; proposalId: string }>();
   const [commentContent, setCommentContent] = useState("");
+  const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [newProposalTitle, setNewProposalTitle] = useState("");
+  const [newProposalContent, setNewProposalContent] = useState("");
+  const [newProposalReason, setNewProposalReason] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -76,6 +82,68 @@ export default function ProposalDetail() {
       });
     },
   });
+
+  // New proposal creation mutation for review
+  const createNewProposalMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("POST", `/api/proposals`, {
+        novelId: actualNovelId,
+        title: newProposalTitle,
+        proposalType: (proposal as any).proposalType,
+        originalText: (novel as any)?.content || (novel as any)?.worldSetting || (novel as any)?.rules || "",
+        proposedText: newProposalContent,
+        reason: newProposalReason,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/novels", actualNovelId, "proposals"] });
+      toast({
+        title: "새 제안 작성 완료",
+        description: "채택된 버전을 기반으로 새 제안이 성공적으로 등록되었습니다.",
+      });
+      setShowReviewDialog(false);
+      setNewProposalTitle("");
+      setNewProposalContent("");
+      setNewProposalReason("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "오류",
+        description: error.message || "제안을 등록하는 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleRewriteProposal = () => {
+    // Get current content based on proposal type
+    let currentContent = "";
+    if ((proposal as any).proposalType === "modification") {
+      currentContent = (novel as any)?.content || "";
+    } else if ((proposal as any).proposalType === "worldSetting") {
+      currentContent = (novel as any)?.worldSetting || "";
+    } else if ((proposal as any).proposalType === "rules") {
+      currentContent = (novel as any)?.rules || "";
+    }
+
+    setNewProposalContent(currentContent);
+    setNewProposalTitle(`${(proposal as any).title} (재작성)`);
+    setNewProposalReason("채택된 버전을 기반으로 재작성");
+    setShowReviewDialog(true);
+  };
+
+  const submitComment = () => {
+    if (!commentContent.trim()) {
+      toast({
+        title: "댓글 내용 필요",
+        description: "댓글 내용을 입력해주세요.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    commentMutation.mutate({ content: commentContent });
+  };
 
   const { data: proposal, isLoading: proposalLoading, error } = useQuery<EditProposal>({
     queryKey: ['/api/proposals', proposalId],
@@ -138,6 +206,7 @@ export default function ProposalDetail() {
       case 'approved': return 'bg-green-100 text-green-800';
       case 'rejected': return 'bg-red-100 text-red-800';
       case 'expired': return 'bg-gray-100 text-gray-800';
+      case 'needs_review': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -148,6 +217,7 @@ export default function ProposalDetail() {
       case 'approved': return '승인됨';
       case 'rejected': return '거부됨';
       case 'expired': return '만료됨';
+      case 'needs_review': return '재검토 요청';
       default: return status;
     }
   };
@@ -357,6 +427,29 @@ export default function ProposalDetail() {
               <div className="text-slate-600 text-sm mt-1">투표 기간이 종료되었습니다.</div>
             </div>
           )}
+
+          {(proposal as any).status === 'needs_review' && (
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="h-5 w-5 text-orange-600 mt-1" />
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-orange-800 mb-2">재검토 요청</h3>
+                  <p className="text-orange-700 mb-4">
+                    기존 제안은 원본이 변경되어 바로 적용할 수 없습니다.
+                    채택된 버전을 기반으로 새 제안을 작성하시겠습니까?
+                  </p>
+                  <Button
+                    onClick={handleRewriteProposal}
+                    className="bg-orange-600 hover:bg-orange-700"
+                    data-testid="button-rewrite"
+                  >
+                    <Edit3 className="h-4 w-4 mr-2" />
+                    다시 작성하기
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         {/* Comments Section */}
@@ -437,6 +530,69 @@ export default function ProposalDetail() {
           </div>
         </Card>
       </div>
+
+      {/* New Proposal Dialog for Review */}
+      <Dialog open={showReviewDialog} onOpenChange={setShowReviewDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>새 제안 작성</DialogTitle>
+            <DialogDescription>
+              채택된 버전을 기반으로 새로운 제안을 작성해주세요.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">제안 제목</label>
+              <Input
+                value={newProposalTitle}
+                onChange={(e) => setNewProposalTitle(e.target.value)}
+                placeholder="제안 제목을 입력하세요"
+                data-testid="input-proposal-title"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">제안 내용</label>
+              <Textarea
+                value={newProposalContent}
+                onChange={(e) => setNewProposalContent(e.target.value)}
+                placeholder="새로운 내용을 입력하세요"
+                rows={10}
+                data-testid="textarea-proposal-content"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">제안 이유</label>
+              <Textarea
+                value={newProposalReason}
+                onChange={(e) => setNewProposalReason(e.target.value)}
+                placeholder="이 제안을 하는 이유를 설명해주세요"
+                rows={3}
+                data-testid="textarea-proposal-reason"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowReviewDialog(false)}
+                data-testid="button-cancel"
+              >
+                취소
+              </Button>
+              <Button
+                onClick={() => createNewProposalMutation.mutate()}
+                disabled={createNewProposalMutation.isPending || !newProposalTitle.trim() || !newProposalContent.trim()}
+                data-testid="button-submit-proposal"
+              >
+                {createNewProposalMutation.isPending ? "등록 중..." : "제안 등록"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

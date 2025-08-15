@@ -7,10 +7,12 @@ import ReferencePanel from "@/components/ReferencePanel";
 import ContributorRanking from "@/components/ContributorRanking";
 import EpisodeList from "@/components/EpisodeList";
 import { useState } from "react";
-import { BookOpen, FileText, Settings, ArrowLeft, List, Crown } from "lucide-react";
+import { BookOpen, FileText, Settings, ArrowLeft, List, Crown, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "wouter";
+import WorldSettingEditor from "@/components/WorldSettingEditor";
+import RulesEditor from "@/components/RulesEditor";
 import type { Novel } from "@shared/schema";
 
 export default function NovelDetail() {
@@ -103,11 +105,11 @@ export default function NovelDetail() {
               <span>순위</span>
             </TabsTrigger>
             <TabsTrigger value="worldSetting" className="flex items-center space-x-2" data-testid="tab-world">
-              <FileText className="h-4 w-4" />
+              <Globe className="h-4 w-4" />
               <span>세계관</span>
             </TabsTrigger>
             <TabsTrigger value="rules" className="flex items-center space-x-2" data-testid="tab-rules">
-              <Settings className="h-4 w-4" />
+              <BookOpen className="h-4 w-4" />
               <span>규칙</span>
             </TabsTrigger>
           </TabsList>
@@ -141,23 +143,11 @@ export default function NovelDetail() {
           </TabsContent>
 
           <TabsContent value="worldSetting" className="space-y-0">
-            <ReferencePanel 
-              novelId={novel.id} 
-              type="worldSetting"
-              title="세계관 설정"
-              content={novel.worldSetting}
-              placeholder="이 소설의 세계관을 설명해주세요. 예: 배경 시대, 지역, 마법 체계, 사회 구조 등"
-            />
+            <WorldSettingEditor novel={novel} />
           </TabsContent>
 
           <TabsContent value="rules" className="space-y-0">
-            <ReferencePanel 
-              novelId={novel.id}
-              type="rules"
-              title="작성 규칙" 
-              content={novel.rules}
-              placeholder="이 소설에 참여할 때 지켜야 할 규칙을 작성해주세요. 예: 문체, 캐릭터 설정, 금기사항 등"
-            />
+            <RulesEditor novel={novel} />
           </TabsContent>
 
 

@@ -461,6 +461,9 @@ export class DatabaseStorage implements IStorage {
           const charCount = proposal.proposedText.length;
           const contributionType = proposal.proposalType === 'modification' ? 'story' : proposal.proposalType;
           await this.addNovelContribution(proposal.novelId, proposal.proposerId, charCount, contributionType);
+          
+          // Mark other pending proposals of the same type as needing review
+          await this.markProposalsForReview(proposal.novelId, proposal.proposalType, proposal.id);
         } else {
           await this.updateProposalStatus(proposal.id, 'rejected');
         }
@@ -577,6 +580,21 @@ export class DatabaseStorage implements IStorage {
       userId,
       ipAddress
     });
+  }
+
+  // Mark proposals for review when original content changes
+  async markProposalsForReview(novelId: string, proposalType: string, approvedProposalId: string): Promise<void> {
+    await db
+      .update(editProposals)
+      .set({ status: 'needs_review' })
+      .where(
+        and(
+          eq(editProposals.novelId, novelId),
+          eq(editProposals.proposalType, proposalType),
+          eq(editProposals.status, 'pending'),
+          ne(editProposals.id, approvedProposalId)
+        )
+      );
   }
 }
 

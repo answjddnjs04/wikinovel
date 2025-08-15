@@ -74,7 +74,7 @@ export const editProposals = pgTable("edit_proposals", {
   proposedText: text("proposed_text").notNull(), // 제안하는 새 텍스트
   insertPosition: integer("insert_position"), // 텍스트 삽입 위치 (추가의 경우)
   reason: text("reason"),
-  status: varchar("status").default("pending"), // pending, approved, rejected
+  status: varchar("status").default("pending"), // pending, approved, rejected, expired, needs_review
   views: integer("views").default(0), // 조회수
   createdAt: timestamp("created_at").defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
