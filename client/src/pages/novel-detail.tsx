@@ -89,7 +89,7 @@ export default function NovelDetail() {
 
         {/* Main Tab Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 bg-white rounded-lg shadow-sm border border-slate-200">
+          <TabsList className="grid w-full grid-cols-6 bg-white rounded-lg shadow-sm border border-slate-200">
             <TabsTrigger value="episodes" className="flex items-center space-x-2" data-testid="tab-episodes">
               <BookOpen className="h-4 w-4" />
               <span>읽기</span>
@@ -97,6 +97,10 @@ export default function NovelDetail() {
             <TabsTrigger value="episodes-list" className="flex items-center space-x-2" data-testid="tab-episodes-list">
               <List className="h-4 w-4" />
               <span>회차</span>
+            </TabsTrigger>
+            <TabsTrigger value="proposals" className="flex items-center space-x-2" data-testid="tab-proposals">
+              <MessageSquare className="h-4 w-4" />
+              <span>제안</span>
             </TabsTrigger>
             <TabsTrigger value="ranking" className="flex items-center space-x-2" data-testid="tab-ranking">
               <Crown className="h-4 w-4" />
@@ -136,6 +140,9 @@ export default function NovelDetail() {
             />
           </TabsContent>
 
+          <TabsContent value="proposals" className="space-y-0">
+            <ProposalsList novelId={novel.id} />
+          </TabsContent>
 
 
           <TabsContent value="ranking" className="space-y-0">

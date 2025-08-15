@@ -3,23 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ThumbsUp, ThumbsDown, MessageCircle, Clock, Eye, User } from "lucide-react";
+import { ThumbsUp, ThumbsDown, MessageSquare, Eye, Clock, User } from "lucide-react";
 import { Link } from "wouter";
+import type { EditProposal, ProposalVote, ProposalComment, User as UserType } from "@shared/schema";
 
-interface Proposal {
-  id: string;
-  title?: string;
-  proposer: {
-    username: string;
-  };
-  createdAt: string;
-  status: string;
+interface ProposalWithDetails extends EditProposal {
+  proposer: UserType;
+  votes: ProposalVote[];
+  comments: ProposalComment[];
   voteCount: {
     approve: number;
     reject: number;
   };
-  comments: any[];
-  views?: number;
 }
 
 interface ProposalsListProps {
@@ -29,31 +24,27 @@ interface ProposalsListProps {
 export default function ProposalsList({ novelId }: ProposalsListProps) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
 
-  const { data: proposals = [], isLoading } = useQuery({
+  const { data: proposals = [], isLoading } = useQuery<ProposalWithDetails[]>({
     queryKey: ['/api/novels', novelId, 'proposals'],
-    queryFn: async () => {
-      const response = await fetch(`/api/novels/${novelId}/proposals`);
-      return response.json();
-    },
+    enabled: !!novelId,
   });
 
-  const filteredProposals = proposals.filter((proposal: Proposal) => {
+  const filteredProposals = proposals.filter((proposal) => {
     if (filter === 'all') return true;
-    return proposal.status === filter;
-  });
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">투표중</Badge>;
-      case 'approved':
-        return <Badge className="bg-green-100 text-green-800">승인됨</Badge>;
-      case 'rejected':
-        return <Badge className="bg-red-100 text-red-800">거부됨</Badge>;
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
+    const now = new Date();
+    const expires = new Date(proposal.expiresAt);
+    
+    if (filter === 'pending') return now <= expires;
+    if (filter === 'approved') {
+      const totalVotes = proposal.voteCount.approve + proposal.voteCount.reject;
+      return now > expires && totalVotes > 0 && (proposal.voteCount.approve / totalVotes) > 0.5;
     }
-  };
+    if (filter === 'rejected') {
+      const totalVotes = proposal.voteCount.approve + proposal.voteCount.reject;
+      return now > expires && (totalVotes === 0 || (proposal.voteCount.approve / totalVotes) <= 0.5);
+    }
+    return true;
+  });
 
   const getApprovalRate = (voteCount: { approve: number; reject: number }) => {
     const total = voteCount.approve + voteCount.reject;
@@ -61,55 +52,84 @@ export default function ProposalsList({ novelId }: ProposalsListProps) {
     return Math.round((voteCount.approve / total) * 100);
   };
 
-  const formatTimeAgo = (dateString: string) => {
+  const getTimeLeft = (expiresAt: string) => {
     const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const expires = new Date(expiresAt);
+    const diff = expires.getTime() - now.getTime();
     
-    if (diffHours < 1) return '방금 전';
-    if (diffHours < 24) return `${diffHours}시간 전`;
+    if (diff <= 0) return "투표 종료";
     
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}일 전`;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) return `${hours}시간 ${minutes}분 남음`;
+    return `${minutes}분 남음`;
+  };
+
+  const getStatusBadge = (proposal: ProposalWithDetails) => {
+    const now = new Date();
+    const expires = new Date(proposal.expiresAt);
+    
+    if (now > expires) {
+      const approveCount = proposal.voteCount.approve;
+      const totalCount = proposal.voteCount.approve + proposal.voteCount.reject;
+      
+      if (totalCount === 0) {
+        return <Badge variant="secondary">투표 없음</Badge>;
+      }
+      
+      const approvalRate = approveCount / totalCount;
+      if (approvalRate > 0.5) {
+        return <Badge className="bg-green-500">승인됨</Badge>;
+      } else {
+        return <Badge variant="destructive">거부됨</Badge>;
+      }
+    }
+    
+    return <Badge className="bg-blue-500">투표 중</Badge>;
   };
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="p-4">
-            <div className="animate-pulse space-y-3">
-              <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-              <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-              <div className="h-3 bg-slate-200 rounded w-full"></div>
-            </div>
-          </Card>
-        ))}
+      <div className="h-96 overflow-y-auto pr-2">
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="p-4 animate-pulse">
+              <div className="space-y-2">
+                <div className="h-5 bg-slate-200 rounded w-3/4"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-4 bg-slate-200 rounded w-1/3"></div>
+                  <div className="h-4 bg-slate-200 rounded w-1/4"></div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Filter Buttons */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-800">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-slate-800">
           제안 목록 ({filteredProposals.length})
         </h2>
-        <div className="flex space-x-2">
+        <div className="flex space-x-1">
           {[
             { key: 'all', label: '전체' },
             { key: 'pending', label: '투표중' },
-            { key: 'approved', label: '승인됨' },
-            { key: 'rejected', label: '거부됨' }
+            { key: 'approved', label: '승인' },
+            { key: 'rejected', label: '거부' }
           ].map((item) => (
             <Button
               key={item.key}
-              variant={filter === item.key ? "default" : "outline"}
+              variant={filter === item.key ? "default" : "ghost"}
               size="sm"
               onClick={() => setFilter(item.key as typeof filter)}
               data-testid={`filter-${item.key}`}
+              className="text-xs px-2 py-1"
             >
               {item.label}
             </Button>
@@ -117,87 +137,67 @@ export default function ProposalsList({ novelId }: ProposalsListProps) {
         </div>
       </div>
 
-      {/* Proposals List */}
-      <div className="space-y-4">
+      {/* Vertical Scroll List with Individual Clickable Cards */}
+      <div className="h-96 overflow-y-auto pr-2 space-y-3">
         {filteredProposals.length === 0 ? (
-          <Card className="p-8 text-center">
+          <Card className="p-6 text-center">
             <div className="text-slate-400">
-              <MessageCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-lg font-medium">제안이 없습니다</p>
-              <p className="text-sm">첫 번째 제안을 작성해보세요!</p>
+              <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium">제안이 없습니다</p>
+              <p className="text-xs text-slate-500">첫 번째 제안을 작성해보세요!</p>
             </div>
           </Card>
         ) : (
-          filteredProposals.map((proposal: Proposal) => (
-            <Card 
-              key={proposal.id}
-              className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-              data-testid={`proposal-card-${proposal.id}`}
-              onClick={() => window.location.href = `/novels/${novelId}/proposals/${proposal.id}`}
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h3 className="text-lg font-semibold text-slate-800">
-                      {proposal.title || "제목 없음"}
-                    </h3>
-                    {getStatusBadge(proposal.status)}
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-slate-600 mb-3">
-                    <span className="flex items-center space-x-1">
-                      <User className="h-4 w-4" />
-                      <span>{proposal.proposer?.username || "익명"}</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{formatTimeAgo(proposal.createdAt)}</span>
-                    </span>
-                    <span className="flex items-center space-x-1">
+          filteredProposals.map((proposal) => (
+            <Link key={proposal.id} href={`/novels/${novelId}/proposals/${proposal.id}`}>
+              <Card 
+                className="p-4 hover:shadow-md hover:bg-slate-50 transition-all cursor-pointer border border-slate-200"
+                data-testid={`proposal-card-${proposal.id}`}
+              >
+                {/* 제안 제목 */}
+                <div className="mb-3">
+                  <h3 className="text-lg font-semibold text-slate-800 line-clamp-2 leading-tight">
+                    {proposal.title || "제안 내용"}
+                  </h3>
+                </div>
+
+                {/* 통계 정보 */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4 text-sm">
+                    {/* 찬성률 */}
+                    <div className="flex items-center space-x-1 text-green-600">
+                      <ThumbsUp className="h-4 w-4" />
+                      <span className="font-medium">{getApprovalRate(proposal.voteCount)}%</span>
+                    </div>
+                    
+                    {/* 댓글 수 */}
+                    <div className="flex items-center space-x-1 text-blue-600">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>{proposal.comments?.length || 0}</span>
+                    </div>
+                    
+                    {/* 조회수 */}
+                    <div className="flex items-center space-x-1 text-slate-600">
                       <Eye className="h-4 w-4" />
-                      <span>{proposal.views || Math.floor(Math.random() * 100) + 10}회</span>
-                    </span>
+                      <span>{proposal.views || Math.floor(Math.random() * 100) + 10}</span>
+                    </div>
+                  </div>
+
+                  {/* 투표 정보 */}
+                  <div className="text-right">
+                    <div className="text-xs text-slate-500 mb-1">
+                      찬성 {proposal.voteCount.approve} / 반대 {proposal.voteCount.reject}
+                    </div>
+                    <div className="w-16 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 rounded-full transition-all"
+                        style={{ width: `${getApprovalRate(proposal.voteCount)}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Vote Summary */}
-              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg mb-3">
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-2">
-                    <ThumbsUp className="h-4 w-4 text-green-600" />
-                    <span className="font-medium text-green-600">
-                      {proposal.voteCount.approve}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <ThumbsDown className="h-4 w-4 text-red-600" />
-                    <span className="font-medium text-red-600">
-                      {proposal.voteCount.reject}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MessageCircle className="h-4 w-4 text-slate-600" />
-                    <span className="text-slate-600">
-                      {proposal.comments?.length || 0}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <div className="text-sm font-medium text-slate-800">
-                    찬성률 {getApprovalRate(proposal.voteCount)}%
-                  </div>
-                  <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-green-500 rounded-full transition-all"
-                      style={{ width: `${getApprovalRate(proposal.voteCount)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-
-            </Card>
+              </Card>
+            </Link>
           ))
         )}
       </div>

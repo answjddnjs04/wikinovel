@@ -24,6 +24,7 @@ function Router() {
           <Route path="/leaderboard" component={WeeklyLeaderboardPage} />
           <Route path="/novels/:id" component={NovelDetail} />
           <Route path="/novels/:id/proposals" component={NovelProposals} />
+          <Route path="/novels/:id/proposals/:proposalId" component={NovelProposals} />
         </>
       )}
       <Route component={NotFound} />
