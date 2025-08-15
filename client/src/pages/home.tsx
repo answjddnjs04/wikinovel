@@ -63,9 +63,9 @@ export default function Home() {
             </div>
 
             {isLoading ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="space-y-4">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 animate-pulse">
+                  <div key={i} className="w-full bg-white rounded-lg shadow-sm border border-slate-200 p-6 animate-pulse">
                     <div className="h-6 bg-slate-200 rounded mb-2"></div>
                     <div className="h-4 bg-slate-200 rounded mb-4"></div>
                     <div className="h-4 bg-slate-200 rounded mb-4"></div>
@@ -90,7 +90,7 @@ export default function Home() {
                 </Button>
               </div>
             ) : (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+              <div className="space-y-4">
                 {novels.map((novel) => (
                   <NovelCard key={novel.id} novel={novel} />
                 ))}

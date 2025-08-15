@@ -40,47 +40,51 @@ export default function NovelCard({ novel }: NovelCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow w-full" data-testid={`card-novel-${novel.id}`}>
       <CardContent className="p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-2" data-testid="text-novel-title">
-          {novel.title}
-        </h3>
-        
-        {novel.description && (
-          <p className="text-sm text-slate-600 mb-4 line-clamp-3 leading-relaxed" data-testid="text-novel-description">
-            {novel.description}
-          </p>
-        )}
-        
-        <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
-          <span data-testid="text-contributors">
-            기여자 {(novel as any).contributorCount || 0}명
-            {(novel as any).activeContributorCount > 0 && (
-              <span className="ml-1 text-green-600">
-                (활성 {(novel as any).activeContributorCount}명)
-              </span>
+        <div className="flex items-start justify-between">
+          <div className="flex-1 mr-6">
+            <h3 className="text-xl font-bold text-slate-800 mb-3" data-testid="text-novel-title">
+              {novel.title}
+            </h3>
+            
+            {novel.description && (
+              <p className="text-base text-slate-600 mb-4 line-clamp-2 leading-relaxed" data-testid="text-novel-description">
+                {novel.description}
+              </p>
             )}
-          </span>
-          <span data-testid="text-last-updated">
-            {novel.updatedAt ? formatTimeAgo(novel.updatedAt) : "방금 전"} 업데이트
-          </span>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            {getStatusBadge()}
-            <span className="text-xs text-slate-500" data-testid="text-pending-proposals">
-              제안 {(novel as any).pendingProposals || 0}건
-            </span>
+            
+            <div className="flex items-center space-x-4 text-sm text-slate-500 mb-3">
+              <span data-testid="text-contributors">
+                기여자 {(novel as any).contributorCount || 0}명
+                {(novel as any).activeContributorCount > 0 && (
+                  <span className="ml-1 text-green-600">
+                    (활성 {(novel as any).activeContributorCount}명)
+                  </span>
+                )}
+              </span>
+              <span data-testid="text-last-updated">
+                {novel.updatedAt ? formatTimeAgo(novel.updatedAt) : "방금 전"} 업데이트
+              </span>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              {getStatusBadge()}
+              <span className="text-sm text-slate-500" data-testid="text-pending-proposals">
+                제안 {(novel as any).pendingProposals || 0}건
+              </span>
+            </div>
           </div>
           
-          <Link href={`/novels/${novel.id}`}>
-            <Button 
-              variant="link" 
-              className="text-primary hover:text-blue-700 p-0"
-              data-testid="link-read-novel"
-            >
-              읽기 →
-            </Button>
-          </Link>
+          <div className="flex-shrink-0">
+            <Link href={`/novels/${novel.id}`}>
+              <Button 
+                variant="default"
+                className="px-6 py-2"
+                data-testid="link-read-novel"
+              >
+                읽기 →
+              </Button>
+            </Link>
+          </div>
         </div>
       </CardContent>
     </Card>
