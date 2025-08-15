@@ -1,0 +1,166 @@
+import React, { useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Sparkles } from "lucide-react";
+
+const profileSchema = z.object({
+  firstName: z.string().min(1, "닉네임을 입력해주세요").max(50, "닉네임은 50자 이내로 입력해주세요")
+});
+
+type ProfileFormData = z.infer<typeof profileSchema>;
+
+interface ProfileSetupModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function ProfileSetupModal({ open, onClose }: ProfileSetupModalProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const form = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      firstName: (user as any)?.firstName || ""
+    }
+  });
+
+  // Initialize form with current user data
+  useEffect(() => {
+    if (user && open) {
+      form.reset({
+        firstName: (user as any)?.firstName || ""
+      });
+    }
+  }, [user, form, open]);
+
+  const updateProfile = useMutation({
+    mutationFn: async (data: ProfileFormData) => {
+      const response = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "프로필 업데이트에 실패했습니다");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "환영합니다!",
+        description: "프로필 설정이 완료되었습니다. 위키노벨을 시작해보세요!"
+      });
+      onClose();
+    },
+    onError: (error) => {
+      toast({
+        title: "오류 발생",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const onSubmit = (data: ProfileFormData) => {
+    updateProfile.mutate(data);
+  };
+
+  const handleSkip = () => {
+    onClose();
+  };
+
+  if (!user) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md" data-testid="modal-profile-setup">
+        <DialogHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <div>
+            <DialogTitle className="text-xl text-slate-800">위키노벨에 오신 것을 환영합니다!</DialogTitle>
+            <DialogDescription className="text-slate-600 mt-2">
+              카카오 로그인이 완료되었습니다.<br />
+              사용하실 닉네임을 설정해주세요.
+            </DialogDescription>
+          </div>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Profile Preview */}
+          <div className="flex flex-col items-center space-y-4">
+            <Avatar className="h-20 w-20" data-testid="avatar-modal-preview">
+              <AvatarImage 
+                src={(user as any)?.profileImageUrl} 
+                alt="프로필 사진"
+              />
+              <AvatarFallback className="text-lg bg-gradient-to-r from-purple-100 to-blue-100">
+                {(user as any)?.firstName?.charAt(0) || "U"}
+              </AvatarFallback>
+            </Avatar>
+            <p className="text-sm text-slate-600 text-center">카카오 프로필 사진</p>
+          </div>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-slate-700 font-medium">닉네임</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="사용하실 닉네임을 입력하세요"
+                        className="h-11 border-slate-200 focus:border-purple-500"
+                        {...field}
+                        data-testid="input-modal-nickname"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-3">
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                  disabled={updateProfile.isPending}
+                  data-testid="button-modal-complete"
+                >
+                  {updateProfile.isPending ? "설정 중..." : "시작하기"}
+                </Button>
+                
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  className="w-full text-slate-600 hover:text-slate-800"
+                  onClick={handleSkip}
+                  disabled={updateProfile.isPending}
+                  data-testid="button-modal-skip"
+                >
+                  나중에 설정하기
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

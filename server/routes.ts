@@ -22,7 +22,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const user = await storage.getUser(userId);
-      res.json(user);
+      
+      // Check if this is a new user from session
+      const isNewUser = (req.session as any)?.isNewUser || false;
+      if (isNewUser) {
+        console.log('New user flag detected in session, adding to response');
+        // Clear the flag after first check
+        delete (req.session as any).isNewUser;
+      }
+      
+      res.json({ ...user, isNewUser });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

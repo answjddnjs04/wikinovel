@@ -246,14 +246,15 @@ export async function setupAuth(app: Express) {
       console.log('User authenticated:', req.user ? 'YES' : 'NO');
       console.log('Session:', req.session.id);
       
-      // Check if this is a new user and redirect to profile setup
+      // Check if this is a new user and set session flag
       const user = req.user as any;
       if (user && user.isNewUser) {
-        console.log('New user detected, redirecting to profile setup');
-        res.redirect("/profile?firstTime=true");
-      } else {
-        res.redirect("/");
+        console.log('New user detected, setting session flag for modal');
+        // Set a flag in session to trigger modal on frontend
+        (req.session as any).isNewUser = true;
       }
+      
+      res.redirect("/");
     }
   );
 
