@@ -38,19 +38,19 @@ export default function NovelCard({ novel }: NovelCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow" data-testid={`card-novel-${novel.id}`}>
-      <CardContent className="p-6">
-        <h3 className="text-lg font-semibold text-slate-800 mb-2" data-testid="text-novel-title">
+    <Card className="hover:shadow-md transition-shadow min-h-[240px]" data-testid={`card-novel-${novel.id}`}>
+      <CardContent className="p-8">
+        <h3 className="text-xl font-bold text-slate-800 mb-3" data-testid="text-novel-title">
           {novel.title}
         </h3>
         
         {novel.description && (
-          <p className="text-sm text-slate-600 mb-4 line-clamp-3" data-testid="text-novel-description">
+          <p className="text-base text-slate-600 mb-6 line-clamp-4 leading-relaxed" data-testid="text-novel-description">
             {novel.description}
           </p>
         )}
         
-        <div className="flex items-center justify-between text-xs text-slate-500 mb-4">
+        <div className="flex items-center justify-between text-sm text-slate-500 mb-5">
           <span data-testid="text-contributors">
             기여자 {(novel as any).contributorCount || 0}명
             {(novel as any).activeContributorCount > 0 && (
@@ -67,7 +67,7 @@ export default function NovelCard({ novel }: NovelCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             {getStatusBadge()}
-            <span className="text-xs text-slate-500" data-testid="text-pending-proposals">
+            <span className="text-sm text-slate-500" data-testid="text-pending-proposals">
               제안 {(novel as any).pendingProposals || 0}건
             </span>
           </div>
@@ -75,7 +75,7 @@ export default function NovelCard({ novel }: NovelCardProps) {
           <Link href={`/novels/${novel.id}`}>
             <Button 
               variant="link" 
-              className="text-primary hover:text-blue-700 p-0"
+              className="text-primary hover:text-blue-700 p-0 text-base font-semibold"
               data-testid="link-read-novel"
             >
               읽기 →
