@@ -16,14 +16,19 @@ export default function ProposalDetail() {
     enabled: !!proposalId
   });
 
+  // Extract novelId from proposal data if not available in params
+  const actualNovelId = novelId || (proposal as any)?.novelId;
+
   console.log('Proposal data:', proposal);
   console.log('Proposal loading:', proposalLoading);
   console.log('Proposal error:', error);
   console.log('Proposal ID:', proposalId);
+  console.log('Novel ID from params:', novelId);
+  console.log('Actual Novel ID:', actualNovelId);
 
   const { data: novel, isLoading: novelLoading } = useQuery({
-    queryKey: ['/api/novels', novelId],
-    enabled: !!novelId
+    queryKey: ['/api/novels', actualNovelId],
+    enabled: !!actualNovelId
   });
 
   if (proposalLoading || novelLoading) {
@@ -84,7 +89,7 @@ export default function ProposalDetail() {
             variant="ghost" 
             className="text-slate-600 hover:text-slate-800"
             onClick={() => {
-              window.location.href = `/novels/${novelId}/proposals`;
+              window.location.href = `/novels/${actualNovelId}/proposals`;
             }}
             data-testid="button-back"
           >
