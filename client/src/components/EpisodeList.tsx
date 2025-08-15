@@ -61,7 +61,7 @@ export default function EpisodeList({ novel, onEpisodeSelect, selectedEpisode }:
         content: episodeContent,
         charCount,
         readTime,
-        views: Math.floor(Math.random() * 500) + 50 // 임시 조회수
+        views: 0 // 실제 조회수는 추후 구현
       });
       
       start = episodeEnd;

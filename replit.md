@@ -28,6 +28,7 @@ Preferred communication style: Simple, everyday language.
 - **소설 조회수 기능**: 소설별 자동 조회수 추적, NovelCard와 소설 상세 페이지에 조회수 표시
 - **실시간 데이터 표시**: Mock 데이터 대신 실제 데이터베이스 수치 기반 통계 제공
 - **통계 UI 간소화**: Landing 페이지 플랫폼 현황을 핵심 지표 2개로 단순화
+- **회차별 조회수 수정**: EpisodeList의 랜덤 조회수를 실제 데이터 기반으로 변경 (기본값 0)
 
 # System Architecture
 
