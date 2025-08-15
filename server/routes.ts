@@ -78,35 +78,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId = req.user.claims.sub;
       }
       
-      const { title, genre, description, rules, worldSetting } = req.body;
-      
-      const novelData = insertNovelSchema.parse({
-        title,
-        genre,
-        description: description || '',
-        authorId: userId,
-        rules: rules || '',
-        worldSetting: worldSetting || '',
-        content: '',
-        contributorCount: 1,
-        totalViews: 0,
-        status: 'active',
-        visibility: 'public'
-      });
-
+      const novelData = insertNovelSchema.parse({ ...req.body, authorId: userId });
       const novel = await storage.createNovel(novelData);
-      
-      // Add initial contribution record for the creator
-      if (description) {
-        await storage.addNovelContribution(novel.id, userId, description.length, 'story');
-      }
-      if (rules) {
-        await storage.addNovelContribution(novel.id, userId, rules.length, 'rules');
-      }
-      if (worldSetting) {
-        await storage.addNovelContribution(novel.id, userId, worldSetting.length, 'worldSetting');
-      }
-
       res.status(201).json(novel);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -337,8 +310,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch votes" });
     }
   });
+
+  app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
+    try {
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
+      const { proposalId, voteType } = req.body;
+
+      // Check if user already voted
+      const existingVote = await storage.getUserVote(proposalId, userId);
+      if (existingVote) {
+        return res.status(400).json({ message: "User has already voted on this proposal" });
+      }
+
+      // Get the proposal to find the novel
+      const proposal = await storage.getProposal(proposalId);
+      if (!proposal) {
+        return res.status(404).json({ message: "Proposal not found" });
+      }
+      
+      // Calculate vote weight based on user contributions to the novel
+      const userContributions = await storage.getUserContributionsByNovel(userId, proposal.novelId);
+      const weight = Math.max(1, Math.floor(userContributions / 100)); // 100글자당 1가중치, 최소 1
+
+      const voteData = insertProposalVoteSchema.parse({
+        proposalId,
+        userId,
+        voteType,
+        weight,
+      });
+
+      const vote = await storage.createProposalVote(voteData);
+      
+      // Check if proposal should be automatically applied after this vote
+      const wasApplied = await storage.checkAndApplyProposal(proposalId);
+      
+      res.status(201).json({ 
+        ...vote, 
+        proposalApplied: wasApplied 
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
+      }
+      console.error("Error creating vote:", error);
+      res.status(500).json({ message: "Failed to create vote" });
+    }
+  });
+
   // Comment routes
-  
+  app.post('/api/proposal-comments', isAuthenticated, async (req: any, res) => {
+    try {
+      const { proposalId, content } = req.body;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
+
+      const comment = await storage.createProposalComment({
+        proposalId,
+        userId,
+        content
+      });
+
+      res.status(201).json(comment);
+    } catch (error) {
       console.error("Error creating comment:", error);
       res.status(500).json({ message: "Failed to create comment" });
     }
