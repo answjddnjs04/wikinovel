@@ -177,7 +177,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's proposals
   app.get('/api/my-proposals', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
       const proposals = await storage.getUserProposals(userId);
       res.json(proposals);
     } catch (error) {
@@ -190,7 +197,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/proposals/:id', isAuthenticated, async (req: any, res) => {
     try {
       const { id } = req.params;
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
       const success = await storage.deleteProposal(id, userId);
       
       if (!success) {
@@ -226,12 +240,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
     try {
-      const { novelId, proposalType, originalText, proposedText, reason, title, episodeNumber } = req.body;
-      const userId = req.user?.claims?.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
       
-      if (!userId) {
-        return res.status(401).json({ message: "User not authenticated" });
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
       }
+      
+      const { novelId, proposalType, originalText, proposedText, reason, title, episodeNumber } = req.body;
       
       console.log('Received proposal data:', { novelId, proposalType, originalText, proposedText, reason, title, userId });
       
@@ -408,25 +426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/proposals', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const proposalData = insertEditProposalSchema.parse({
-        ...req.body,
-        proposerId: userId,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
-      });
 
-      const proposal = await storage.createEditProposal(proposalData);
-      res.status(201).json(proposal);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid proposal data", errors: error.errors });
-      }
-      console.error("Error creating proposal:", error);
-      res.status(500).json({ message: "Failed to create proposal" });
-    }
-  });
 
   // Proposal vote routes
   app.get('/api/proposals/:id/votes', async (req, res) => {
@@ -442,7 +442,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
       const { proposalId, voteType } = req.body;
 
       // Check if user already voted
