@@ -431,6 +431,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile
+  app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { firstName, profileImageUrl } = req.body;
+      
+      if (!firstName || firstName.trim().length === 0) {
+        return res.status(400).json({ message: "닉네임은 필수입니다" });
+      }
+      
+      if (firstName.length > 50) {
+        return res.status(400).json({ message: "닉네임은 50자 이내로 입력해주세요" });
+      }
+
+      const updatedUser = await storage.updateUser(userId, {
+        firstName: firstName.trim(),
+        profileImageUrl: profileImageUrl?.trim() || null
+      });
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).json({ message: "프로필 업데이트에 실패했습니다" });
+    }
+  });
+
   // User stats route
   app.get('/api/user/stats', isAuthenticated, async (req: any, res) => {
     try {

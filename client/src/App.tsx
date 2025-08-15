@@ -11,6 +11,7 @@ import NovelDetail from "@/pages/novel-detail";
 import NovelProposals from "@/pages/novel-proposals-simple";
 import ProposalDetail from "@/pages/proposal-detail";
 import MyProposals from "@/pages/my-proposals";
+import Profile from "@/pages/profile";
 import WeeklyLeaderboardPage from "@/pages/weekly-leaderboard";
 
 function Router() {
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/leaderboard" component={WeeklyLeaderboardPage} />
         <Route path="/my-proposals" component={MyProposals} />
+        <Route path="/profile" component={Profile} />
         <Route path="/novels/:id" component={NovelDetail} />
         <Route path="/novels/:id/proposals" component={NovelProposals} />
         <Route path="/novels/:novelId/proposals/:proposalId" component={ProposalDetail} />
@@ -50,6 +52,7 @@ function Router() {
           <Route path="/" component={Home} />
           <Route path="/leaderboard" component={WeeklyLeaderboardPage} />
           <Route path="/my-proposals" component={MyProposals} />
+          <Route path="/profile" component={Profile} />
           <Route path="/novels/:id" component={NovelDetail} />
           <Route path="/novels/:id/proposals" component={NovelProposals} />
           <Route path="/novels/:novelId/proposals/:proposalId" component={ProposalDetail} />

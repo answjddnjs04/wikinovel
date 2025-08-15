@@ -45,19 +45,21 @@ export default function Header() {
           
           <div className="flex items-center space-x-4">
             {user && (
-              <div className="flex items-center space-x-2" data-testid="user-info">
-                {(user as any).profileImageUrl && (
-                  <img 
-                    src={(user as any).profileImageUrl} 
-                    alt="Profile" 
-                    className="w-8 h-8 rounded-full object-cover"
-                    data-testid="img-user-avatar"
-                  />
-                )}
-                <span className="text-sm text-slate-700" data-testid="text-username">
-                  {(user as any).firstName || (user as any).email}
-                </span>
-              </div>
+              <Link href="/profile">
+                <div className="flex items-center space-x-2 hover:bg-slate-100 rounded-lg p-2 transition-colors cursor-pointer" data-testid="user-info">
+                  {(user as any).profileImageUrl && (
+                    <img 
+                      src={(user as any).profileImageUrl} 
+                      alt="Profile" 
+                      className="w-8 h-8 rounded-full object-cover"
+                      data-testid="img-user-avatar"
+                    />
+                  )}
+                  <span className="text-sm text-slate-700" data-testid="text-username">
+                    {(user as any).firstName || (user as any).email}
+                  </span>
+                </div>
+              </Link>
             )}
             
             <Button 
