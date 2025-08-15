@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { genre } = req.query;
       const novels = genre 
         ? await storage.getNovelsByGenre(genre as string)
-        : await storage.getNovels();
+        : await storage.getAllNovels();
       res.json(novels);
     } catch (error) {
       console.error("Error fetching novels:", error);
@@ -53,33 +53,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/novels/genre-counts', async (req, res) => {
-    try {
-      const counts = await storage.getNovelCountsByGenre();
-      res.json(counts);
-    } catch (error) {
-      console.error("Error fetching genre counts:", error);
-      res.status(500).json({ message: "Failed to fetch genre counts" });
-    }
-  });
-
-  // Get weekly stats (real data)
-  app.get('/api/weekly-stats', async (req, res) => {
-    try {
-      // Get real statistics using storage methods
-      const stats = await storage.getWeeklyStats();
-      res.json(stats);
-    } catch (error) {
-      console.error("Error fetching weekly stats:", error);
-      res.status(500).json({ message: "Failed to fetch weekly stats" });
-    }
-  });
-
   app.get('/api/novels/:id', async (req, res) => {
     try {
       const { id } = req.params;
-      // Increment view count and get novel
-      const novel = await storage.incrementNovelViewCount(id);
+      const novel = await storage.getNovel(id);
       if (!novel) {
         return res.status(404).json({ message: "Novel not found" });
       }
@@ -92,8 +69,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/novels', isAuthenticated, async (req: any, res) => {
     try {
-      const novelData = insertNovelSchema.parse(req.body);
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
+      
+      const { title, genre, description, rules, worldSetting } = req.body;
+      
+      const novelData = insertNovelSchema.parse({
+        title,
+        genre,
+        description: description || '',
+        authorId: userId,
+        rules: rules || '',
+        worldSetting: worldSetting || '',
+        content: '',
+        contributorCount: 1,
+        totalViews: 0,
+        status: 'active',
+        visibility: 'public'
+      });
+
       const novel = await storage.createNovel(novelData);
+      
+      // Add initial contribution record for the creator
+      if (description) {
+        await storage.addNovelContribution(novel.id, userId, description.length, 'story');
+      }
+      if (rules) {
+        await storage.addNovelContribution(novel.id, userId, rules.length, 'rules');
+      }
+      if (worldSetting) {
+        await storage.addNovelContribution(novel.id, userId, worldSetting.length, 'worldSetting');
+      }
+
       res.status(201).json(novel);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -109,7 +122,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { content } = req.body;
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
 
       const novel = await storage.updateNovelContent(id, content);
       
@@ -128,7 +148,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { worldSetting } = req.body;
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
 
       const novel = await storage.updateNovelWorldSetting(id, worldSetting);
       
@@ -147,7 +174,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { rules } = req.body;
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
 
       const novel = await storage.updateNovelRules(id, rules);
       
@@ -277,11 +311,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Voting routes
-  app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
+  // Track proposal view
+  app.post('/api/proposals/:id/view', async (req: any, res) => {
     try {
+      const { id } = req.params;
+      const userId = req.user?.claims?.sub;
+      const ipAddress = req.ip;
+      
+      await storage.trackProposalView(id, userId, ipAddress);
+      res.json({ message: "View tracked successfully" });
+    } catch (error) {
+      console.error("Error tracking proposal view:", error);
+      res.status(500).json({ message: "Failed to track view" });
+    }
+  });
+
+  // Proposal vote routes
+  app.get('/api/proposals/:id/votes', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const votes = await storage.getVotesByProposal(id);
+      res.json(votes);
+    } catch (error) {
+      console.error("Error fetching votes:", error);
+      res.status(500).json({ message: "Failed to fetch votes" });
+    }
+  });
+
+ Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
       const { proposalId, voteType } = req.body;
-      const userId = req.user.claims.sub;
 
       // Check if user already voted
       const existingVote = await storage.getUserVote(proposalId, userId);
@@ -289,22 +354,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User has already voted on this proposal" });
       }
 
-      // Calculate vote weight based on user contributions to the novel
+      // Get the proposal to find the novel
       const proposal = await storage.getProposal(proposalId);
       if (!proposal) {
         return res.status(404).json({ message: "Proposal not found" });
       }
       
+      // Calculate vote weight based on user contributions to the novel
       const userContributions = await storage.getUserContributionsByNovel(userId, proposal.novelId);
-      const weight = Math.max(1, Math.floor(userContributions / 100)); // 1 weight per 100 characters contributed, minimum 1
+      const weight = Math.max(1, Math.floor(userContributions / 100)); // 100글자당 1가중치, 최소 1
 
-      const vote = await storage.createProposalVote({
+      const voteData = insertProposalVoteSchema.parse({
         proposalId,
         userId,
         voteType,
-        weight
+        weight,
       });
 
+      const vote = await storage.createProposalVote(voteData);
+      
       // Check if proposal should be automatically applied after this vote
       const wasApplied = await storage.checkAndApplyProposal(proposalId);
       
@@ -313,6 +381,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         proposalApplied: wasApplied 
       });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
+      }
       console.error("Error creating vote:", error);
       res.status(500).json({ message: "Failed to create vote" });
     }
@@ -322,7 +393,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/proposal-comments', isAuthenticated, async (req: any, res) => {
     try {
       const { proposalId, content } = req.body;
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
 
       const comment = await storage.createProposalComment({
         proposalId,
@@ -411,81 +489,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Track proposal view
-  app.post('/api/proposals/:id/view', async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const userId = req.user?.claims?.sub;
-      const ipAddress = req.ip;
-      
-      await storage.trackProposalView(id, userId, ipAddress);
-      res.json({ message: "View tracked successfully" });
-    } catch (error) {
-      console.error("Error tracking proposal view:", error);
-      res.status(500).json({ message: "Failed to track view" });
-    }
-  });
-
-
-
-  // Proposal vote routes
-  app.get('/api/proposals/:id/votes', async (req, res) => {
-    try {
-      const { id } = req.params;
-      const votes = await storage.getVotesByProposal(id);
-      res.json(votes);
-    } catch (error) {
-      console.error("Error fetching votes:", error);
-      res.status(500).json({ message: "Failed to fetch votes" });
-    }
-  });
-
-  app.post('/api/proposal-votes', isAuthenticated, async (req: any, res) => {
-    try {
-      // Handle different authentication providers (same as /api/auth/user)
-      let userId: string;
-      
-      if (req.user.provider === 'kakao') {
-        userId = req.user.id;
-      } else {
-        userId = req.user.claims.sub;
-      }
-      const { proposalId, voteType } = req.body;
-
-      // Check if user already voted
-      const existingVote = await storage.getUserVote(proposalId, userId);
-      if (existingVote) {
-        return res.status(400).json({ message: "User has already voted on this proposal" });
-      }
-
-      // Get the proposal to find the novel
-      const proposal = await storage.getProposal(proposalId);
-      if (!proposal) {
-        return res.status(404).json({ message: "Proposal not found" });
-      }
-      
-      // Calculate vote weight based on user contributions to the novel
-      const userContributions = await storage.getUserContributionsByNovel(userId, proposal.novelId);
-      const weight = Math.max(1, Math.floor(userContributions / 100)); // 100글자당 1가중치, 최소 1
-
-      const voteData = insertProposalVoteSchema.parse({
-        proposalId,
-        userId,
-        voteType,
-        weight,
-      });
-
-      const vote = await storage.createProposalVote(voteData);
-      res.status(201).json(vote);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid vote data", errors: error.errors });
-      }
-      console.error("Error creating vote:", error);
-      res.status(500).json({ message: "Failed to create vote" });
-    }
-  });
-
   // Update user profile
   app.patch('/api/auth/profile', isAuthenticated, async (req: any, res) => {
     try {
@@ -519,7 +522,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User stats route
   app.get('/api/user/stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      // Handle different authentication providers (same as /api/auth/user)
+      let userId: string;
+      
+      if (req.user.provider === 'kakao') {
+        userId = req.user.id;
+      } else {
+        userId = req.user.claims.sub;
+      }
+      
       // TODO: Calculate comprehensive user statistics
       const stats = {
         totalContribution: 0,
