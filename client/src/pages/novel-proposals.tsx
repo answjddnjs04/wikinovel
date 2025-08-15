@@ -157,12 +157,21 @@ export default function NovelProposals() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Back Button */}
         <div className="mb-6">
-          <Link href={isDetailView ? `/novels/${novel.id}/proposals` : `/novels/${novel.id}`}>
-            <Button variant="ghost" className="text-slate-600 hover:text-slate-800" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              {isDetailView ? "제안 목록으로" : "소설로 돌아가기"}
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            className="text-slate-600 hover:text-slate-800" 
+            data-testid="button-back"
+            onClick={() => {
+              if (isDetailView) {
+                window.location.href = `/novels/${novel.id}/proposals`;
+              } else {
+                window.location.href = `/novels/${novel.id}`;
+              }
+            }}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {isDetailView ? "제안 목록으로" : "소설로 돌아가기"}
+          </Button>
         </div>
 
         {/* Conditional Rendering: Detail View vs List View */}
@@ -384,9 +393,14 @@ export default function NovelProposals() {
                 </Card>
               ) : (
                 proposals.map((proposal) => (
-                  <Link key={proposal.id} href={`/novels/${id}/proposals/${proposal.id}`}>
-                    <Card className="p-4 hover:shadow-md hover:bg-slate-50 transition-all cursor-pointer border border-slate-200">
-                      <div className="flex items-start justify-between mb-3">
+                  <Card 
+                    key={proposal.id} 
+                    className="p-4 hover:shadow-md hover:bg-slate-50 transition-all cursor-pointer border border-slate-200"
+                    onClick={() => {
+                      window.location.href = `/novels/${id}/proposals/${proposal.id}`;
+                    }}
+                  >
+                    <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-slate-800 line-clamp-2 leading-tight mb-2">
                             {proposal.title || "제안 내용"}
@@ -438,7 +452,6 @@ export default function NovelProposals() {
                         </div>
                       </div>
                     </Card>
-                  </Link>
                 ))
               )}
             </div>
