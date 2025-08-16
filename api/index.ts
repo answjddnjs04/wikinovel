@@ -1,19 +1,4 @@
-// SPA 웹앱 인터페이스
-app.get('*', (req, res) => {
-  console.log(`Serving ${req.path} as SPA`);
-  
-  // API 요청이 아닌 경우
-  if (!req.path.startsWith('/api/')) {
-    const html = `
-      <!DOCTYPE html>
-      <html lang="ko">
-        <head>
-          <title>위키소설 - 모두가 만드는 소설</title>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-          <style>
-            * { margin: 0; padding: 0;// api/index.ts (프로젝트 루트에 생성)
+// api/index.ts - 완전한 버전
 import express from "express";
 import passport from "passport";
 import session from "express-session";
@@ -36,14 +21,20 @@ app.use((req, res, next) => {
   }
 });
 
+// 모든 요청 로깅
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Query:`, req.query);
+  next();
+});
+
 // 세션 설정 (간단한 메모리 저장소)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-secret',
   resave: false,
   saveUninitialized: false,
   cookie: { 
-    secure: false, // Vercel에서는 https가 자동으로 처리됨
-    maxAge: 24 * 60 * 60 * 1000 // 24시간
+    secure: false,
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
@@ -82,13 +73,7 @@ if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
   }));
 }
 
-// 모든 요청 로깅
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Query:`, req.query);
-  next();
-});
-
-// API 라우트들 (Vercel에서 /api/xxx로 접근됨)
+// API 라우트들
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
