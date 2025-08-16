@@ -96,10 +96,9 @@ app.get('/api/auth/status', (req, res) => {
   });
 });
 
-// 카카오 로그인 라우트 (직접 리다이렉트)
+// 카카오 로그인 라우트 (강화된 리다이렉트)
 app.get('/api/auth/kakao', (req, res) => {
   console.log('=== KAKAO LOGIN REQUEST RECEIVED ===');
-  console.log('Headers:', req.headers);
 
   if (!process.env.KAKAO_CLIENT_ID) {
     console.error('KAKAO_CLIENT_ID missing');
@@ -108,17 +107,27 @@ app.get('/api/auth/kakao', (req, res) => {
     });
   }
 
-  // 카카오 OAuth URL 직접 생성
-  const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize');
-  kakaoAuthUrl.searchParams.set('client_id', process.env.KAKAO_CLIENT_ID);
-  kakaoAuthUrl.searchParams.set('redirect_uri', process.env.KAKAO_CALLBACK_URL || 'https://wikinovel-lirg.vercel.app/api/auth/kakao/callback');
-  kakaoAuthUrl.searchParams.set('response_type', 'code');
-  kakaoAuthUrl.searchParams.set('scope', 'profile_nickname');
+  try {
+    // 카카오 OAuth URL 직접 생성
+    const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize');
+    kakaoAuthUrl.searchParams.set('client_id', process.env.KAKAO_CLIENT_ID);
+    kakaoAuthUrl.searchParams.set('redirect_uri', process.env.KAKAO_CALLBACK_URL || 'https://wikinovel-lirg.vercel.app/api/auth/kakao/callback');
+    kakaoAuthUrl.searchParams.set('response_type', 'code');
+    kakaoAuthUrl.searchParams.set('scope', 'profile_nickname');
 
-  console.log('Redirecting to Kakao:', kakaoAuthUrl.toString());
-  
-  // 직접 리다이렉트
-  res.redirect(kakaoAuthUrl.toString());
+    const redirectUrl = kakaoAuthUrl.toString();
+    console.log('Redirecting to Kakao:', redirectUrl);
+    
+    // 명시적인 리다이렉트 헤더 설정
+    res.writeHead(302, {
+      'Location': redirectUrl,
+      'Cache-Control': 'no-cache'
+    });
+    res.end();
+  } catch (error) {
+    console.error('Error generating Kakao URL:', error);
+    res.status(500).json({ error: 'Failed to generate Kakao login URL' });
+  }
 });
 
 // 카카오 콜백 (직접 처리)
