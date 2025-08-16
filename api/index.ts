@@ -1,4 +1,19 @@
-// api/index.ts (프로젝트 루트에 생성)
+// SPA 웹앱 인터페이스
+app.get('*', (req, res) => {
+  console.log(`Serving ${req.path} as SPA`);
+  
+  // API 요청이 아닌 경우
+  if (!req.path.startsWith('/api/')) {
+    const html = `
+      <!DOCTYPE html>
+      <html lang="ko">
+        <head>
+          <title>위키소설 - 모두가 만드는 소설</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+          <style>
+            * { margin: 0; padding: 0;// api/index.ts (프로젝트 루트에 생성)
 import express from "express";
 import passport from "passport";
 import session from "express-session";
@@ -208,118 +223,10 @@ app.get('/api/logout', (req, res) => {
   });
 });
 
-// SPA 폴백 (모든 다른 요청은 클라이언트로)
+// SPA 폴백 (실제 클라이언트가 dist/public에서 제공됨)
 app.get('*', (req, res) => {
-  console.log(`Serving ${req.path} as SPA`);
-  
-  // API 요청이 아닌 경우 HTML 응답
-  if (!req.path.startsWith('/api/')) {
-    const html = `
-      <!DOCTYPE html>
-      <html lang="ko">
-        <head>
-          <title>위키소설</title>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <style>
-            body { 
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-              margin: 0; padding: 20px; 
-              background: #f5f5f5;
-            }
-            .container { 
-              max-width: 600px; margin: 0 auto; 
-              background: white; padding: 20px; 
-              border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .btn { 
-              background: #fee500; color: #000; 
-              padding: 12px 24px; border: none; 
-              border-radius: 6px; cursor: pointer;
-              text-decoration: none; display: inline-block;
-              font-weight: bold;
-            }
-            .btn:hover { background: #fdd800; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1>🎯 위키소설</h1>
-            <p>위키형 협업 소설 플랫폼</p>
-            
-            <h3>🧪 테스트 링크들:</h3>
-            <ul>
-              <li><a href="/api/health">서버 상태 확인</a></li>
-              <li><a href="/api/auth/status">인증 상태 확인</a></li>
-              <li><a href="/api/auth/kakao/test">카카오 설정 확인</a></li>
-            </ul>
-            
-            <div style="margin-top: 30px;">
-              <a href="/api/auth/kakao" class="btn" onclick="console.log('카카오 로그인 버튼 클릭됨');">
-                🍰 카카오 로그인 테스트
-              </a>
-              
-              <div style="margin-top: 10px;">
-                <small>
-                  <a href="/api/auth/kakao" target="_blank" style="color: #666;">
-                    새 탭에서 카카오 로그인 열기
-                  </a>
-                </small>
-              </div>
-            </div>
-            
-            <div style="margin-top: 20px;">
-              <h4>🔗 직접 링크 테스트:</h4>
-              <div style="background: #f8f8f8; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
-                <a href="/api/auth/kakao" target="_blank">/api/auth/kakao</a>
-              </div>
-            </div>
-            
-            <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 4px;">
-              <strong>현재 상태:</strong> Vercel 서버리스 함수가 정상 작동 중입니다!
-            </div>
-            
-            <script>
-              // URL 파라미터 확인하여 로그인 결과 표시
-              const urlParams = new URLSearchParams(window.location.search);
-              const error = urlParams.get('error');
-              const success = urlParams.get('success');
-              const user = urlParams.get('user');
-              
-              if (error) {
-                const details = urlParams.get('details');
-                document.body.insertAdjacentHTML('afterbegin', 
-                  '<div style="background: #ffebee; color: #c62828; padding: 15px; margin: 10px; border-radius: 4px; border: 1px solid #ef5350;">' +
-                  '<strong>❌ 오류:</strong> ' + error + (details ? '<br><small>' + decodeURIComponent(details) + '</small>' : '') +
-                  '</div>'
-                );
-              }
-              
-              if (success && user) {
-                try {
-                  const userData = JSON.parse(decodeURIComponent(user));
-                  document.body.insertAdjacentHTML('afterbegin',
-                    '<div style="background: #e8f5e8; color: #2e7d32; padding: 15px; margin: 10px; border-radius: 4px; border: 1px solid #4caf50;">' +
-                    '<strong>✅ 성공:</strong> 카카오 로그인 완료!<br>' +
-                    '<strong>사용자:</strong> ' + userData.nickname + ' (ID: ' + userData.id + ')' +
-                    '</div>'
-                  );
-                } catch (e) {
-                  console.error('User data parse error:', e);
-                }
-              }
-              
-              // URL 정리
-              if (error || success) {
-                window.history.replaceState({}, document.title, window.location.pathname);
-              }
-            </script>
-          </div>
-        </body>
-      </html>
-    `;
-    res.status(200).set({ "Content-Type": "text/html" }).end(html);
-  } else {
+  // API 요청만 처리, 나머지는 정적 파일이 처리
+  if (req.path.startsWith('/api/')) {
     res.status(404).json({ 
       error: "API endpoint not found",
       path: req.path,
@@ -327,9 +234,13 @@ app.get('*', (req, res) => {
         "/api/health",
         "/api/auth/status", 
         "/api/auth/kakao/test",
-        "/api/auth/kakao"
+        "/api/auth/kakao",
+        "/api/auth/kakao/callback"
       ]
     });
+  } else {
+    // 이 경우는 발생하지 않아야 함 (정적 파일이 먼저 처리됨)
+    res.status(404).json({ error: "Page not found" });
   }
 });
 
