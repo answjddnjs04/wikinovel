@@ -86,17 +86,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// 인증 상태 확인
+// 인증 상태 확인 (세션 기반)
 app.get('/api/auth/status', (req, res) => {
-  const user = req.user as any;
+  const user = req.session.user;
   res.json({
-    authenticated: req.isAuthenticated(),
-    user: user ? {
-      id: user.id,
-      provider: user.provider || 'kakao',
-      username: user.username,
-      email: user.email
-    } : null,
+    authenticated: !!user,
+    user: user || null,
     timestamp: new Date().toISOString()
   });
 });
@@ -176,12 +171,18 @@ app.get('/api/auth/kakao/callback', async (req, res) => {
     const userData = await userResponse.json();
     console.log('User data:', userData);
 
-    // 성공 응답
-    res.redirect(`/?success=kakao_login&user=${encodeURIComponent(JSON.stringify({
+    // 세션에 사용자 정보 저장
+    req.session.user = {
       id: userData.id,
       nickname: userData.properties?.nickname || `kakao_${userData.id}`,
-    }))}`);
+      provider: 'kakao',
+      profilePicture: userData.properties?.profile_image || null
+    };
 
+    console.log('User logged in:', req.session.user);
+
+    // 성공 응답 - 홈으로 깔끔하게 리다이렉트
+    res.redirect("/");
   } catch (error) {
     console.error('Kakao callback error:', error);
     res.redirect(`/?error=kakao_callback_failed&details=${encodeURIComponent(error.message)}`);
@@ -200,12 +201,12 @@ app.get('/api/auth/kakao/test', (req, res) => {
 
 // 로그아웃
 app.get('/api/logout', (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      console.error('Logout error:', err);
-    }
-    res.redirect("/");
-  });
+  console.log('User logged out:', req.session.user);
+  
+  // 세션에서 사용자 정보 제거
+  req.session.user = null;
+  
+  res.redirect("/");
 });
 
 // SPA 폴백 (실제 클라이언트가 dist/public에서 제공됨)
