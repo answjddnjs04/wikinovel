@@ -76,7 +76,7 @@ export async function setupAuth(app: Express) {
     passport.use(new KakaoStrategy({
       clientID: process.env.KAKAO_CLIENT_ID,
       clientSecret: process.env.KAKAO_CLIENT_SECRET,
-      callbackURL: "/api/auth/kakao/callback"
+      callbackURL: process.env.KAKAO_CALLBACK_URL || "/api/auth/kakao/callback"
     }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
       try {
         console.log('=== KAKAO STRATEGY CALLBACK ===');
