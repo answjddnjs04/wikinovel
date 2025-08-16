@@ -116,6 +116,79 @@ app.get('/api/auth/user', (req, res) => {
   });
 });
 
+// 소설 목록 API (Mock 데이터)
+app.get('/api/novels', (req, res) => {
+  const { genre } = req.query;
+  
+  // Mock 소설 데이터
+  const mockNovels = [
+    {
+      id: '1',
+      title: '마법사의 모험',
+      description: '신비로운 마법 세계의 이야기',
+      genre: '판타지',
+      author: '작가1',
+      authorId: '1',
+      views: 1250,
+      episodes: 15,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: '2', 
+      title: '우주 탐험기',
+      description: '미래 우주 시대의 모험',
+      genre: 'SF',
+      author: '작가2',
+      authorId: '2',
+      views: 890,
+      episodes: 8,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: '3',
+      title: '도시의 연인',
+      description: '현대 도시를 배경으로 한 로맨스',
+      genre: '로맨스',
+      author: '작가3',
+      authorId: '3',
+      views: 2100,
+      episodes: 22,
+      updatedAt: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    }
+  ];
+  
+  // 장르 필터링
+  const filteredNovels = genre 
+    ? mockNovels.filter(novel => novel.genre === decodeURIComponent(genre))
+    : mockNovels;
+    
+  res.json(filteredNovels);
+});
+
+// 주간 통계 API (Mock 데이터)
+app.get('/api/weekly-stats', (req, res) => {
+  res.json({
+    totalNovels: 3,
+    totalWords: 15420,
+    activeWriters: 8,
+    weeklyGrowth: 12.5
+  });
+});
+
+// 장르별 소설 수 API (Mock 데이터)
+app.get('/api/novels/genre-counts', (req, res) => {
+  res.json([
+    { genre: '판타지', count: 1 },
+    { genre: 'SF', count: 1 },
+    { genre: '로맨스', count: 1 },
+    { genre: '미스터리', count: 0 },
+    { genre: '액션', count: 0 }
+  ]);
+});
+
 // 카카오 로그인 라우트 (강화된 리다이렉트)
 app.get('/api/auth/kakao', (req, res) => {
   console.log('=== KAKAO LOGIN REQUEST RECEIVED ===');
