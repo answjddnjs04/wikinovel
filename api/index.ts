@@ -101,29 +101,92 @@ app.get('/api/auth/status', (req, res) => {
   });
 });
 
-// 카카오 로그인 라우트
-app.get('/api/auth/kakao', (req, res, next) => {
-  if (!process.env.KAKAO_CLIENT_ID || !process.env.KAKAO_CLIENT_SECRET) {
+// 카카오 로그인 라우트 (직접 리다이렉트)
+app.get('/api/auth/kakao', (req, res) => {
+  console.log('=== KAKAO LOGIN REQUEST RECEIVED ===');
+  console.log('Headers:', req.headers);
+
+  if (!process.env.KAKAO_CLIENT_ID) {
+    console.error('KAKAO_CLIENT_ID missing');
     return res.status(503).json({ 
-      message: "Kakao authentication not configured",
-      reason: "Missing KAKAO_CLIENT_ID or KAKAO_CLIENT_SECRET"
+      message: "Kakao CLIENT_ID not configured"
     });
   }
+
+  // 카카오 OAuth URL 직접 생성
+  const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize');
+  kakaoAuthUrl.searchParams.set('client_id', process.env.KAKAO_CLIENT_ID);
+  kakaoAuthUrl.searchParams.set('redirect_uri', process.env.KAKAO_CALLBACK_URL || 'https://wikinovel-lirg.vercel.app/api/auth/kakao/callback');
+  kakaoAuthUrl.searchParams.set('response_type', 'code');
+  kakaoAuthUrl.searchParams.set('scope', 'profile_nickname');
+
+  console.log('Redirecting to Kakao:', kakaoAuthUrl.toString());
   
-  console.log('=== KAKAO LOGIN INITIATED ===');
-  passport.authenticate("kakao")(req, res, next);
+  // 직접 리다이렉트
+  res.redirect(kakaoAuthUrl.toString());
 });
 
-// 카카오 콜백
-app.get('/api/auth/kakao/callback', 
-  passport.authenticate("kakao", { 
-    failureRedirect: "/landing?error=kakao_auth_failed" 
-  }),
-  (req, res) => {
-    console.log('=== KAKAO AUTHENTICATION SUCCESSFUL ===');
-    res.redirect("/");
+// 카카오 콜백 (직접 처리)
+app.get('/api/auth/kakao/callback', async (req, res) => {
+  console.log('=== KAKAO CALLBACK RECEIVED ===');
+  console.log('Query parameters:', req.query);
+
+  const { code, error } = req.query;
+
+  if (error) {
+    console.error('Kakao OAuth error:', error);
+    return res.redirect(`/?error=kakao_oauth_error&details=${error}`);
   }
-);
+
+  if (!code) {
+    console.error('No authorization code received');
+    return res.redirect('/?error=kakao_no_code');
+  }
+
+  try {
+    // 카카오에서 액세스 토큰 요청
+    const tokenResponse = await fetch('https://kauth.kakao.com/oauth/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: process.env.KAKAO_CLIENT_ID!,
+        client_secret: process.env.KAKAO_CLIENT_SECRET!,
+        redirect_uri: process.env.KAKAO_CALLBACK_URL || 'https://wikinovel-lirg.vercel.app/api/auth/kakao/callback',
+        code: code as string,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json();
+    console.log('Token response:', tokenData);
+
+    if (!tokenData.access_token) {
+      throw new Error('Failed to get access token');
+    }
+
+    // 사용자 정보 요청
+    const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+      },
+    });
+
+    const userData = await userResponse.json();
+    console.log('User data:', userData);
+
+    // 성공 응답
+    res.redirect(`/?success=kakao_login&user=${encodeURIComponent(JSON.stringify({
+      id: userData.id,
+      nickname: userData.properties?.nickname || `kakao_${userData.id}`,
+    }))}`);
+
+  } catch (error) {
+    console.error('Kakao callback error:', error);
+    res.redirect(`/?error=kakao_callback_failed&details=${encodeURIComponent(error.message)}`);
+  }
+});
 
 // 카카오 테스트 엔드포인트
 app.get('/api/auth/kakao/test', (req, res) => {
@@ -192,14 +255,65 @@ app.get('*', (req, res) => {
             </ul>
             
             <div style="margin-top: 30px;">
-              <a href="/api/auth/kakao" class="btn">
+              <a href="/api/auth/kakao" class="btn" onclick="console.log('카카오 로그인 버튼 클릭됨');">
                 🍰 카카오 로그인 테스트
               </a>
+              
+              <div style="margin-top: 10px;">
+                <small>
+                  <a href="/api/auth/kakao" target="_blank" style="color: #666;">
+                    새 탭에서 카카오 로그인 열기
+                  </a>
+                </small>
+              </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+              <h4>🔗 직접 링크 테스트:</h4>
+              <div style="background: #f8f8f8; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+                <a href="/api/auth/kakao" target="_blank">/api/auth/kakao</a>
+              </div>
             </div>
             
             <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 4px;">
               <strong>현재 상태:</strong> Vercel 서버리스 함수가 정상 작동 중입니다!
             </div>
+            
+            <script>
+              // URL 파라미터 확인하여 로그인 결과 표시
+              const urlParams = new URLSearchParams(window.location.search);
+              const error = urlParams.get('error');
+              const success = urlParams.get('success');
+              const user = urlParams.get('user');
+              
+              if (error) {
+                const details = urlParams.get('details');
+                document.body.insertAdjacentHTML('afterbegin', 
+                  '<div style="background: #ffebee; color: #c62828; padding: 15px; margin: 10px; border-radius: 4px; border: 1px solid #ef5350;">' +
+                  '<strong>❌ 오류:</strong> ' + error + (details ? '<br><small>' + decodeURIComponent(details) + '</small>' : '') +
+                  '</div>'
+                );
+              }
+              
+              if (success && user) {
+                try {
+                  const userData = JSON.parse(decodeURIComponent(user));
+                  document.body.insertAdjacentHTML('afterbegin',
+                    '<div style="background: #e8f5e8; color: #2e7d32; padding: 15px; margin: 10px; border-radius: 4px; border: 1px solid #4caf50;">' +
+                    '<strong>✅ 성공:</strong> 카카오 로그인 완료!<br>' +
+                    '<strong>사용자:</strong> ' + userData.nickname + ' (ID: ' + userData.id + ')' +
+                    '</div>'
+                  );
+                } catch (e) {
+                  console.error('User data parse error:', e);
+                }
+              }
+              
+              // URL 정리
+              if (error || success) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+              }
+            </script>
           </div>
         </body>
       </html>
