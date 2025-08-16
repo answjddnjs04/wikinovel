@@ -96,6 +96,26 @@ app.get('/api/auth/status', (req, res) => {
   });
 });
 
+// React 앱에서 사용하는 사용자 정보 API
+app.get('/api/auth/user', (req, res) => {
+  const user = req.session.user;
+  
+  if (!user) {
+    return res.status(401).json({ 
+      message: 'Not authenticated',
+      authenticated: false 
+    });
+  }
+  
+  res.json({
+    id: user.id,
+    nickname: user.nickname,
+    provider: user.provider,
+    profilePicture: user.profilePicture,
+    isNewUser: false // 기본값
+  });
+});
+
 // 카카오 로그인 라우트 (강화된 리다이렉트)
 app.get('/api/auth/kakao', (req, res) => {
   console.log('=== KAKAO LOGIN REQUEST RECEIVED ===');
