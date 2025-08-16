@@ -67,8 +67,14 @@ if (process.env.KAKAO_CLIENT_ID && process.env.KAKAO_CLIENT_SECRET) {
   }));
 }
 
-// 기본 라우트들
-app.get('/health', (req, res) => {
+// 모든 요청 로깅
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Query:`, req.query);
+  next();
+});
+
+// API 라우트들 (Vercel에서 /api/xxx로 접근됨)
+app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
@@ -81,7 +87,7 @@ app.get('/health', (req, res) => {
 });
 
 // 인증 상태 확인
-app.get('/auth/status', (req, res) => {
+app.get('/api/auth/status', (req, res) => {
   const user = req.user as any;
   res.json({
     authenticated: req.isAuthenticated(),
@@ -96,7 +102,7 @@ app.get('/auth/status', (req, res) => {
 });
 
 // 카카오 로그인 라우트
-app.get('/auth/kakao', (req, res, next) => {
+app.get('/api/auth/kakao', (req, res, next) => {
   if (!process.env.KAKAO_CLIENT_ID || !process.env.KAKAO_CLIENT_SECRET) {
     return res.status(503).json({ 
       message: "Kakao authentication not configured",
@@ -109,7 +115,7 @@ app.get('/auth/kakao', (req, res, next) => {
 });
 
 // 카카오 콜백
-app.get('/auth/kakao/callback', 
+app.get('/api/auth/kakao/callback', 
   passport.authenticate("kakao", { 
     failureRedirect: "/landing?error=kakao_auth_failed" 
   }),
@@ -120,7 +126,7 @@ app.get('/auth/kakao/callback',
 );
 
 // 카카오 테스트 엔드포인트
-app.get('/auth/kakao/test', (req, res) => {
+app.get('/api/auth/kakao/test', (req, res) => {
   res.json({
     message: '카카오 테스트 엔드포인트',
     query: req.query,
@@ -130,7 +136,7 @@ app.get('/auth/kakao/test', (req, res) => {
 });
 
 // 로그아웃
-app.get('/logout', (req, res) => {
+app.get('/api/logout', (req, res) => {
   req.logout((err) => {
     if (err) {
       console.error('Logout error:', err);
@@ -141,25 +147,75 @@ app.get('/logout', (req, res) => {
 
 // SPA 폴백 (모든 다른 요청은 클라이언트로)
 app.get('*', (req, res) => {
-  // API 요청이 아닌 경우 간단한 HTML 응답
+  console.log(`Serving ${req.path} as SPA`);
+  
+  // API 요청이 아닌 경우 HTML 응답
   if (!req.path.startsWith('/api/')) {
     const html = `
       <!DOCTYPE html>
-      <html>
+      <html lang="ko">
         <head>
           <title>위키소설</title>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              margin: 0; padding: 20px; 
+              background: #f5f5f5;
+            }
+            .container { 
+              max-width: 600px; margin: 0 auto; 
+              background: white; padding: 20px; 
+              border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .btn { 
+              background: #fee500; color: #000; 
+              padding: 12px 24px; border: none; 
+              border-radius: 6px; cursor: pointer;
+              text-decoration: none; display: inline-block;
+              font-weight: bold;
+            }
+            .btn:hover { background: #fdd800; }
+          </style>
         </head>
         <body>
-          <div id="root">Loading...</div>
-          <script>console.log('Vercel serving basic HTML');</script>
+          <div class="container">
+            <h1>🎯 위키소설</h1>
+            <p>위키형 협업 소설 플랫폼</p>
+            
+            <h3>🧪 테스트 링크들:</h3>
+            <ul>
+              <li><a href="/api/health">서버 상태 확인</a></li>
+              <li><a href="/api/auth/status">인증 상태 확인</a></li>
+              <li><a href="/api/auth/kakao/test">카카오 설정 확인</a></li>
+            </ul>
+            
+            <div style="margin-top: 30px;">
+              <a href="/api/auth/kakao" class="btn">
+                🍰 카카오 로그인 테스트
+              </a>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 4px;">
+              <strong>현재 상태:</strong> Vercel 서버리스 함수가 정상 작동 중입니다!
+            </div>
+          </div>
         </body>
       </html>
     `;
     res.status(200).set({ "Content-Type": "text/html" }).end(html);
   } else {
-    res.status(404).json({ error: "API endpoint not found" });
+    res.status(404).json({ 
+      error: "API endpoint not found",
+      path: req.path,
+      availableEndpoints: [
+        "/api/health",
+        "/api/auth/status", 
+        "/api/auth/kakao/test",
+        "/api/auth/kakao"
+      ]
+    });
   }
 });
 
